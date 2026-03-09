@@ -31,9 +31,9 @@ export class CouponsController {
   create(
     @TenantId() tenantId: string,
     @Body() dto: CreateCouponDto,
-    @Query('establishmentId') establishmentId: string,
+    @Query('establishmentId') establishmentId?: string,
   ) {
-    return this.couponsService.create(tenantId, establishmentId, dto);
+    return this.couponsService.create(tenantId, establishmentId ?? null, dto);
   }
 
   @Get()

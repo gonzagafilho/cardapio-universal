@@ -38,12 +38,12 @@ export class StorePublicService {
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       include: {
         category: { select: { id: true, name: true } },
-        optionGroups: {
-          where: {},
+        optionalGroups: {
           include: {
-            items: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
+            optionalGroup: {
+              include: { items: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+            },
           },
-          orderBy: { sortOrder: 'asc' },
         },
       },
     });
@@ -59,9 +59,12 @@ export class StorePublicService {
       },
       include: {
         category: true,
-        optionGroups: {
-          include: { items: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
-          orderBy: { sortOrder: 'asc' },
+        optionalGroups: {
+          include: {
+            optionalGroup: {
+              include: { items: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+            },
+          },
         },
       },
     });

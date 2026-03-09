@@ -15,11 +15,15 @@ export class ProductOptionsService {
       where: { id: productId, tenantId },
     });
     if (!product) throw new NotFoundException('Produto não encontrado');
-    return this.prisma.productOptionGroup.findMany({
-      where: { productId, tenantId },
-      include: { items: true },
-      orderBy: { sortOrder: 'asc' },
+    const links = await this.prisma.productOptionalGroup.findMany({
+      where: { productId },
+      include: {
+        optionalGroup: { include: { items: { orderBy: { sortOrder: 'asc' } } } },
+      },
     });
+    return links
+      .map((l) => l.optionalGroup)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   async createGroup(
@@ -31,10 +35,10 @@ export class ProductOptionsService {
       where: { id: productId, tenantId },
     });
     if (!product) throw new NotFoundException('Produto não encontrado');
-    return this.prisma.productOptionGroup.create({
+    const optionalGroup = await this.prisma.optionalGroup.create({
       data: {
         tenantId,
-        productId,
+        establishmentId: product.establishmentId,
         name: dto.name,
         minSelect: dto.minSelect ?? 0,
         maxSelect: dto.maxSelect ?? 1,
@@ -43,6 +47,10 @@ export class ProductOptionsService {
       },
       include: { items: true },
     });
+    await this.prisma.productOptionalGroup.create({
+      data: { productId, optionalGroupId: optionalGroup.id },
+    });
+    return optionalGroup;
   }
 
   async updateGroup(
@@ -50,23 +58,33 @@ export class ProductOptionsService {
     groupId: string,
     dto: UpdateOptionGroupDto,
   ) {
-    const group = await this.prisma.productOptionGroup.findFirst({
+    const group = await this.prisma.optionalGroup.findFirst({
       where: { id: groupId, tenantId },
+      include: { items: true },
     });
     if (!group) throw new NotFoundException('Grupo não encontrado');
-    return this.prisma.productOptionGroup.update({
+    return this.prisma.optionalGroup.update({
       where: { id: groupId },
-      data: dto,
+      data: {
+        ...(dto.name != null && { name: dto.name }),
+        ...(dto.minSelect != null && { minSelect: dto.minSelect }),
+        ...(dto.maxSelect != null && { maxSelect: dto.maxSelect }),
+        ...(dto.isRequired != null && { isRequired: dto.isRequired }),
+        ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
+      },
       include: { items: true },
     });
   }
 
   async removeGroup(tenantId: string, groupId: string) {
-    const group = await this.prisma.productOptionGroup.findFirst({
+    const group = await this.prisma.optionalGroup.findFirst({
       where: { id: groupId, tenantId },
     });
     if (!group) throw new NotFoundException('Grupo não encontrado');
-    await this.prisma.productOptionGroup.delete({ where: { id: groupId } });
+    await this.prisma.productOptionalGroup.deleteMany({
+      where: { optionalGroupId: groupId },
+    });
+    await this.prisma.optionalGroup.delete({ where: { id: groupId } });
     return { message: 'Grupo removido' };
   }
 
@@ -75,14 +93,14 @@ export class ProductOptionsService {
     groupId: string,
     dto: CreateOptionItemDto,
   ) {
-    const group = await this.prisma.productOptionGroup.findFirst({
+    const group = await this.prisma.optionalGroup.findFirst({
       where: { id: groupId, tenantId },
     });
     if (!group) throw new NotFoundException('Grupo não encontrado');
-    return this.prisma.productOptionItem.create({
+    return this.prisma.optionalItem.create({
       data: {
         tenantId,
-        groupId,
+        optionalGroupId: groupId,
         name: dto.name,
         price: new Decimal(dto.price ?? 0),
         isActive: dto.isActive ?? true,
@@ -96,24 +114,24 @@ export class ProductOptionsService {
     itemId: string,
     dto: UpdateOptionItemDto,
   ) {
-    const item = await this.prisma.productOptionItem.findFirst({
+    const item = await this.prisma.optionalItem.findFirst({
       where: { id: itemId, tenantId },
     });
     if (!item) throw new NotFoundException('Item não encontrado');
     const data: Record<string, unknown> = { ...dto };
     if (dto.price != null) data.price = new Decimal(dto.price);
-    return this.prisma.productOptionItem.update({
+    return this.prisma.optionalItem.update({
       where: { id: itemId },
       data: data as never,
     });
   }
 
   async removeItem(tenantId: string, itemId: string) {
-    const item = await this.prisma.productOptionItem.findFirst({
+    const item = await this.prisma.optionalItem.findFirst({
       where: { id: itemId, tenantId },
     });
     if (!item) throw new NotFoundException('Item não encontrado');
-    await this.prisma.productOptionItem.delete({ where: { id: itemId } });
+    await this.prisma.optionalItem.delete({ where: { id: itemId } });
     return { message: 'Item removido' };
   }
 }

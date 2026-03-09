@@ -7,22 +7,20 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(tenantId: string, establishmentId: string, dto: CreateCustomerDto) {
+  async create(tenantId: string, _establishmentId: string, dto: CreateCustomerDto) {
     return this.prisma.customer.create({
       data: {
         tenantId,
-        establishmentId,
         name: dto.name,
         phone: dto.phone,
         email: dto.email,
-        cpf: dto.cpf,
       },
     });
   }
 
-  async findAll(tenantId: string, establishmentId?: string) {
+  async findAll(tenantId: string, _establishmentId?: string) {
     return this.prisma.customer.findMany({
-      where: { tenantId, ...(establishmentId && { establishmentId }) },
+      where: { tenantId },
       orderBy: { createdAt: 'desc' },
     });
   }

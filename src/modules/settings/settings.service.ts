@@ -28,7 +28,13 @@ export class SettingsService {
     dto: UpdateStoreSettingsDto,
   ) {
     const data: Record<string, unknown> = { ...dto };
-    if (dto.minimumOrder != null) data.minimumOrder = new Decimal(dto.minimumOrder);
+    if (dto.minimumOrder != null) data.minimumOrderAmount = new Decimal(dto.minimumOrder);
+    delete data.minimumOrder;
+    delete data.primaryColor;
+    delete data.secondaryColor;
+    delete data.accentColor;
+    delete data.pixKey;
+    delete data.deliveryEstimate;
     return this.prisma.storeSettings.upsert({
       where: { tenantId_establishmentId: { tenantId, establishmentId } },
       create: {
@@ -41,39 +47,30 @@ export class SettingsService {
   }
 
   async updateHours(
-    tenantId: string,
-    establishmentId: string,
-    openHours: Record<string, { open: string; close: string }>,
+    _tenantId: string,
+    _establishmentId: string,
+    _openHours: Record<string, { open: string; close: string }>,
   ) {
-    return this.prisma.storeSettings.upsert({
-      where: { tenantId_establishmentId: { tenantId, establishmentId } },
-      create: { tenantId, establishmentId, openHours: openHours as never },
-      update: { openHours: openHours as never },
-    });
+    // Horários ficam em EstablishmentWorkingHours; não em StoreSettings.
+    return Promise.resolve(undefined);
   }
 
   async updateBranding(
     tenantId: string,
     establishmentId: string,
-    data: { primaryColor?: string; secondaryColor?: string; accentColor?: string },
+    _data: { primaryColor?: string; secondaryColor?: string; accentColor?: string },
   ) {
-    return this.prisma.storeSettings.upsert({
-      where: { tenantId_establishmentId: { tenantId, establishmentId } },
-      create: { tenantId, establishmentId, ...data },
-      update: data,
-    });
+    const settings = await this.getStore(tenantId, establishmentId);
+    return settings;
   }
 
   async updatePaymentMethods(
     tenantId: string,
     establishmentId: string,
-    data: { pixKey?: string },
+    _data: { pixKey?: string },
   ) {
-    return this.prisma.storeSettings.upsert({
-      where: { tenantId_establishmentId: { tenantId, establishmentId } },
-      create: { tenantId, establishmentId, ...data },
-      update: data,
-    });
+    const settings = await this.getStore(tenantId, establishmentId);
+    return settings;
   }
 
   async updateDelivery(
@@ -85,12 +82,17 @@ export class SettingsService {
       deliveryEstimate?: number;
     },
   ) {
-    const update: Record<string, unknown> = { ...data };
-    if (data.minimumOrder != null) update.minimumOrder = new Decimal(data.minimumOrder);
+    const update: Record<string, unknown> = {};
+    if (data.acceptsDelivery != null) update.acceptsDelivery = data.acceptsDelivery;
+    if (data.minimumOrder != null) update.minimumOrderAmount = new Decimal(data.minimumOrder);
+    if (data.deliveryEstimate != null) {
+      update.estimatedDeliveryTimeMin = data.deliveryEstimate;
+      update.estimatedDeliveryTimeMax = data.deliveryEstimate;
+    }
     return this.prisma.storeSettings.upsert({
       where: { tenantId_establishmentId: { tenantId, establishmentId } },
-      create: { tenantId, establishmentId, ...(update as object) },
-      update: update as never,
+      create: { tenantId, establishmentId, ...update },
+      update,
     });
   }
 }

@@ -1,35 +1,38 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { DiscountType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
+const DISCOUNT_TYPE_MAP: Record<string, DiscountType> = {
+  percentage: DiscountType.PERCENTAGE,
+  fixed: DiscountType.FIXED,
+};
+
 @Injectable()
 export class CouponsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(tenantId: string, establishmentId: string, dto: CreateCouponDto) {
+  async create(tenantId: string, establishmentId: string | null, dto: CreateCouponDto) {
     const existing = await this.prisma.coupon.findUnique({
       where: {
-        tenantId_establishmentId_code: {
-          tenantId,
-          establishmentId,
-          code: dto.code.toUpperCase(),
-        },
+        tenantId_code: { tenantId, code: dto.code.toUpperCase() },
       },
     });
     if (existing) throw new ConflictException('Código já existe');
+    const discountType = DISCOUNT_TYPE_MAP[dto.type] ?? DiscountType.FIXED;
     return this.prisma.coupon.create({
       data: {
         tenantId,
-        establishmentId,
+        establishmentId: establishmentId ?? undefined,
         code: dto.code.toUpperCase(),
-        type: dto.type,
-        value: new Decimal(dto.value),
+        discountType,
+        discountValue: new Decimal(dto.value),
         minOrderValue: dto.minOrderValue != null ? new Decimal(dto.minOrderValue) : undefined,
-        maxDiscount: dto.maxDiscount != null ? new Decimal(dto.maxDiscount) : undefined,
-        startsAt: new Date(dto.startsAt),
-        endsAt: new Date(dto.endsAt),
+        maxDiscountValue: dto.maxDiscount != null ? new Decimal(dto.maxDiscount) : undefined,
+        startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+        endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
         usageLimit: dto.usageLimit,
         isActive: dto.isActive ?? true,
       },
@@ -54,9 +57,9 @@ export class CouponsService {
   async update(tenantId: string, id: string, dto: UpdateCouponDto) {
     await this.findOne(tenantId, id);
     const data: Record<string, unknown> = { ...dto };
-    if (dto.value != null) data.value = new Decimal(dto.value);
+    if (dto.value != null) data.discountValue = new Decimal(dto.value);
     if (dto.minOrderValue != null) data.minOrderValue = new Decimal(dto.minOrderValue);
-    if (dto.maxDiscount != null) data.maxDiscount = new Decimal(dto.maxDiscount);
+    if (dto.maxDiscount != null) data.maxDiscountValue = new Decimal(dto.maxDiscount);
     if (dto.startsAt != null) data.startsAt = new Date(dto.startsAt);
     if (dto.endsAt != null) data.endsAt = new Date(dto.endsAt);
     if (dto.code) data.code = dto.code.toUpperCase();

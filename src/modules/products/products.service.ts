@@ -14,16 +14,18 @@ export class ProductsService {
     establishmentId: string,
     dto: CreateProductDto,
   ) {
+    const slug = (dto as { slug?: string }).slug ?? dto.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     return this.prisma.product.create({
       data: {
         tenantId,
         establishmentId,
         categoryId: dto.categoryId,
         name: dto.name,
+        slug,
         description: dto.description,
         imageUrl: dto.imageUrl,
         price: new Decimal(dto.price),
-        promotionalPrice: dto.promotionalPrice != null ? new Decimal(dto.promotionalPrice) : undefined,
+        compareAtPrice: dto.promotionalPrice != null ? new Decimal(dto.promotionalPrice) : undefined,
         sku: dto.sku,
         isActive: dto.isActive ?? true,
         isFeatured: dto.isFeatured ?? false,
@@ -45,7 +47,7 @@ export class ProductsService {
         ...(categoryId && { categoryId }),
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      include: { category: true, optionGroups: { include: { items: true } } },
+      include: { category: true, optionalGroups: { include: { optionalGroup: { include: { items: true } } } } },
     });
   }
 
@@ -54,7 +56,7 @@ export class ProductsService {
       where: { id, tenantId },
       include: {
         category: true,
-        optionGroups: { include: { items: true }, orderBy: { sortOrder: 'asc' } },
+        optionalGroups: { include: { optionalGroup: { include: { items: true } } } },
       },
     });
     if (!product) throw new NotFoundException('Produto não encontrado');
@@ -65,7 +67,7 @@ export class ProductsService {
     await this.findOne(tenantId, id);
     const data: Record<string, unknown> = { ...dto };
     if (dto.price != null) data.price = new Decimal(dto.price);
-    if (dto.promotionalPrice != null) data.promotionalPrice = new Decimal(dto.promotionalPrice);
+    if (dto.promotionalPrice != null) data.compareAtPrice = new Decimal(dto.promotionalPrice);
     return this.prisma.product.update({
       where: { id },
       data: data as never,

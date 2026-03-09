@@ -1,8 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { OrderType, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ORDER_STATUS } from '../../common/constants/order-status';
 import { Decimal } from '@prisma/client/runtime/library';
+
+const ORDER_TYPE_MAP: Record<string, OrderType> = {
+  delivery: OrderType.DELIVERY,
+  pickup: OrderType.PICKUP,
+  dine_in: OrderType.DINE_IN,
+};
 
 @Injectable()
 export class OrdersService {
@@ -23,39 +30,43 @@ export class OrdersService {
     if (!cart || cart.status !== 'open') {
       throw new BadRequestException('Carrinho inválido ou já convertido');
     }
-    const code = await this.generateOrderCode(tenantId, dto.establishmentId);
-    const subtotal = Number(cart.subtotal);
-    const discount = Number(cart.discount);
+    const orderNumber = await this.generateOrderCode(tenantId, dto.establishmentId);
+    const subtotalAmount = Number(cart.subtotal);
+    const discountAmount = Number(cart.discount);
     const deliveryFee = Number(cart.deliveryFee);
-    const total = Number(cart.total);
+    const totalAmount = Number(cart.total);
+
+    const orderType = ORDER_TYPE_MAP[dto.type] ?? OrderType.DELIVERY;
+    const paymentMethod = dto.paymentMethod != null ? (dto.paymentMethod.toUpperCase().replace('-', '_') as PaymentMethod) : null;
 
     const order = await this.prisma.order.create({
       data: {
         tenantId,
         establishmentId: dto.establishmentId,
         customerId: dto.customerId ?? cart.customerId,
-        code,
-        type: dto.type,
+        orderNumber,
+        type: orderType,
         status: ORDER_STATUS.PENDING,
-        paymentStatus: 'pending',
-        paymentMethod: dto.paymentMethod,
-        subtotal: new Decimal(subtotal),
-        discount: new Decimal(discount),
+        paymentStatus: PaymentStatus.PENDING,
+        paymentMethod,
+        subtotalAmount: new Decimal(subtotalAmount),
+        discountAmount: new Decimal(discountAmount),
         deliveryFee: new Decimal(deliveryFee),
-        total: new Decimal(total),
+        totalAmount: new Decimal(totalAmount),
         notes: dto.notes,
         customerName: dto.customerName,
         customerPhone: dto.customerPhone,
-        deliveryAddress: dto.deliveryAddress,
+        deliveryAddressSnapshot: dto.deliveryAddress,
       },
     });
 
     for (const item of cart.items) {
       await this.prisma.orderItem.create({
         data: {
+          tenantId,
           orderId: order.id,
           productId: item.productId,
-          productName: item.product.name,
+          productNameSnapshot: item.product.name,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
@@ -95,8 +106,8 @@ export class OrdersService {
     status: (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS],
   ) {
     const order = await this.findOne(tenantId, id);
-    const allowed = [ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY, ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED];
-    if (!allowed.includes(status)) {
+    const allowed: (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS][] = [ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY, ORDER_STATUS.OUT_FOR_DELIVERY, ORDER_STATUS.COMPLETED, ORDER_STATUS.CANCELLED];
+    if (!(allowed as string[]).includes(status)) {
       throw new BadRequestException('Status inválido');
     }
     return this.prisma.order.update({
@@ -123,6 +134,6 @@ export class OrdersService {
   }
 
   async delivered(tenantId: string, id: string) {
-    return this.updateStatus(tenantId, id, ORDER_STATUS.DELIVERED);
+    return this.updateStatus(tenantId, id, ORDER_STATUS.COMPLETED);
   }
 }

@@ -44,7 +44,7 @@ export class EstablishmentsService {
         whatsapp: dto.whatsapp,
         email: dto.email,
         description: dto.description,
-        address: dto.address,
+        addressLine: dto.address,
         city: dto.city,
         state: dto.state,
         zipCode: dto.zipCode,

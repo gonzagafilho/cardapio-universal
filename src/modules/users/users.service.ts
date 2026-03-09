@@ -4,9 +4,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { Role as PrismaRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ROLES } from '../../common/constants/roles';
+
+function toPrismaRole(role: string): PrismaRole {
+  const map: Record<string, PrismaRole> = {
+    [ROLES.MANAGER]: PrismaRole.TENANT_ADMIN,
+    [ROLES.ATTENDANT]: PrismaRole.TENANT_STAFF,
+    [ROLES.OPERATOR]: PrismaRole.TENANT_STAFF,
+  };
+  return (map[role] ?? role) as PrismaRole;
+}
 
 @Injectable()
 export class UsersService {
@@ -27,7 +38,7 @@ export class UsersService {
         name: dto.name,
         email: dto.email.toLowerCase(),
         passwordHash,
-        role: dto.role,
+        role: toPrismaRole(dto.role),
         isActive: dto.isActive ?? true,
       },
       select: {
@@ -89,6 +100,7 @@ export class UsersService {
       delete data.password;
     }
     if (dto.email) data.email = dto.email.toLowerCase();
+    if (dto.role != null) data.role = toPrismaRole(dto.role);
     return this.prisma.user.update({
       where: { id },
       data: data as never,

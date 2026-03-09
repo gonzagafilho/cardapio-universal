@@ -60,10 +60,10 @@ export class CartsService {
     }
     const product = await this.prisma.product.findFirst({
       where: { id: dto.productId, tenantId, isActive: true },
-      include: { optionGroups: { include: { items: true } } },
+      include: { optionalGroups: { include: { optionalGroup: { include: { items: true } } } } },
     });
     if (!product) throw new NotFoundException('Produto não encontrado');
-    const unitPrice = Number(product.promotionalPrice ?? product.price);
+    const unitPrice = Number(product.compareAtPrice ?? product.price);
     const totalPrice = new Decimal(unitPrice * dto.quantity);
     await this.prisma.cartItem.create({
       data: {

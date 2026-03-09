@@ -14,7 +14,7 @@ export class ReportsService {
         createdAt: { gte: start, lte: end },
       },
     });
-    const total = orders.reduce((s, o) => s + Number(o.total), 0);
+    const total = orders.reduce((s, o) => s + Number(o.totalAmount), 0);
     return { total, count: orders.length, start, end };
   }
 
@@ -25,14 +25,14 @@ export class ReportsService {
         establishmentId,
         createdAt: { gte: start, lte: end },
       },
-      select: { createdAt: true, total: true, status: true },
+      select: { createdAt: true, totalAmount: true, status: true },
     });
     const byDay: Record<string, { count: number; total: number }> = {};
     for (const o of orders) {
       const day = o.createdAt.toISOString().slice(0, 10);
       if (!byDay[day]) byDay[day] = { count: 0, total: 0 };
       byDay[day].count += 1;
-      if (o.status !== 'CANCELLED') byDay[day].total += Number(o.total);
+      if (o.status !== 'CANCELLED') byDay[day].total += Number(o.totalAmount);
     }
     return byDay;
   }
@@ -47,16 +47,18 @@ export class ReportsService {
           createdAt: { gte: start, lte: end },
         },
       },
-      select: { productId: true, productName: true, quantity: true, totalPrice: true },
+      select: { productId: true, productNameSnapshot: true, quantity: true, totalPrice: true },
     });
     const map = new Map<string, { name: string; quantity: number; total: number }>();
     for (const i of items) {
-      const cur = map.get(i.productId) ?? { name: i.productName, quantity: 0, total: 0 };
+      const key = i.productId ?? '';
+      const cur = map.get(key) ?? { name: i.productNameSnapshot, quantity: 0, total: 0 };
       cur.quantity += i.quantity;
       cur.total += Number(i.totalPrice);
-      map.set(i.productId, cur);
+      map.set(key, cur);
     }
     return Array.from(map.entries())
+      .filter(([id]) => id !== '')
       .map(([id, v]) => ({ productId: id, ...v }))
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, limit);
@@ -70,19 +72,19 @@ export class ReportsService {
         status: { not: 'CANCELLED' },
         createdAt: { gte: start, lte: end },
       },
-      select: { paymentMethod: true, total: true },
+      select: { paymentMethod: true, totalAmount: true },
     });
     const byMethod: Record<string, number> = {};
     for (const o of orders) {
       const m = o.paymentMethod ?? 'outros';
-      byMethod[m] = (byMethod[m] ?? 0) + Number(o.total);
+      byMethod[m] = (byMethod[m] ?? 0) + Number(o.totalAmount);
     }
     return byMethod;
   }
 
-  async customersReport(tenantId: string, establishmentId: string) {
+  async customersReport(tenantId: string, _establishmentId: string) {
     const count = await this.prisma.customer.count({
-      where: { tenantId, establishmentId },
+      where: { tenantId },
     });
     return { total: count };
   }
