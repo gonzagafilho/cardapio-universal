@@ -1,0 +1,96 @@
+'use client';
+
+import Link from 'next/link';
+import { useStoreData } from '@/hooks/useStoreData';
+import { useOrderTracking } from '@/hooks/useOrderTracking';
+import { StoreHeader, OrderTimeline, StoreFooter } from '@/components/store';
+import { Button } from '@/components/ui/button';
+import { LoadingPage } from '@/components/ui/loading';
+import { EmptyState } from '@/components/ui/empty-state';
+import { formatCurrency } from '@/lib/currency';
+import { getOrderStatusLabel } from '@/lib/format';
+
+interface PageProps {
+  params: { storeSlug: string; id: string };
+}
+
+export default function OrderTrackingPage({ params }: PageProps) {
+  const { storeSlug, id: orderId } = params;
+  const { store, loading: storeLoading, error: storeError } = useStoreData(storeSlug);
+  const { order, loading: orderLoading, error: orderError } = useOrderTracking(orderId);
+
+  if (storeLoading) return <LoadingPage />;
+  if (storeError || !store) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <EmptyState title="Loja nao encontrada" description={storeError ?? undefined} />
+      </div>
+    );
+  }
+
+  if (orderLoading) return <LoadingPage />;
+  if (orderError || !order) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <StoreHeader store={store} storeSlug={storeSlug} />
+        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
+          <EmptyState
+            title="Pedido nao encontrado"
+            description={orderError ?? undefined}
+            action={
+              <Link href={`/${storeSlug}`}>
+                <Button>Voltar ao cardapio</Button>
+              </Link>
+            }
+          />
+        </main>
+        <StoreFooter store={store} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <StoreHeader store={store} storeSlug={storeSlug} />
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
+        <h1 className="text-xl font-bold text-gray-900">Acompanhar pedido</h1>
+        <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+          <p className="text-lg font-semibold text-primary">Pedido #{order.code}</p>
+          <p className="text-sm text-gray-600">
+            Status: {getOrderStatusLabel(order.status)}
+          </p>
+          <p className="mt-2 text-gray-700">
+            Total: {formatCurrency(Number(order.total))}
+          </p>
+        </div>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+          <h2 className="mb-4 font-semibold text-gray-900">Timeline</h2>
+          <OrderTimeline status={order.status} />
+        </div>
+        {order.items && order.items.length > 0 && (
+          <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+            <h2 className="mb-3 font-semibold text-gray-900">Itens</h2>
+            <ul className="space-y-2">
+              {order.items.map((item) => (
+                <li key={item.id} className="flex justify-between text-sm">
+                  <span>
+                    {item.quantity}x {item.productName}
+                  </span>
+                  <span>{formatCurrency(Number(item.totalPrice))}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="mt-6">
+          <Link href={`/${storeSlug}`}>
+            <Button variant="outline" fullWidth>
+              Voltar ao cardapio
+            </Button>
+          </Link>
+        </div>
+      </main>
+      <StoreFooter store={store} />
+    </div>
+  );
+}

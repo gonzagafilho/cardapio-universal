@@ -1,0 +1,717 @@
+// Cardápio Universal - Schema Prisma Multi-Tenant (SaaS White-Label)
+// PostgreSQL | IDs: cuid() | Valores monetários: Decimal(10,2)
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum Role {
+  SUPER_ADMIN   // administrador da plataforma
+  TENANT_OWNER  // dono do tenant/empresa
+  TENANT_ADMIN  // admin do tenant
+  TENANT_STAFF  // equipe do tenant
+}
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+  DINE_IN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum Weekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+// =============================================================================
+// TENANT (empresa dona do sistema / multi-tenant)
+// =============================================================================
+model Tenant {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  document     String?   // CPF ou CNPJ
+  phone        String?
+  email        String?
+  logoUrl      String?
+  primaryColor String?
+  secondaryColor String?
+  isActive     Boolean   @default(true)
+  plan         String    @default("basic") // basic, pro, enterprise
+  status       String    @default("active") // active, suspended, cancelled
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  establishments       Establishment[]
+  users                User[]
+  categories           Category[]
+  products             Product[]
+  optionalGroups       OptionalGroup[]
+  optionalItems        OptionalItem[]
+  customers            Customer[]
+  customerAddresses    CustomerAddress[]
+  carts                Cart[]
+  orders               Order[]
+  orderItems           OrderItem[]
+  orderItemOptions     OrderItemOption[]
+  payments             Payment[]
+  coupons              Coupon[]
+  deliveryZones         DeliveryZone[]
+  storeSettings        StoreSettings[]
+  banners              Banner[]
+  workingHours         EstablishmentWorkingHours[]
+  tables               Table[]
+  auditLogs            AuditLog[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+// =============================================================================
+// USER (usuários do painel administrativo)
+// Email: único por tenant (um mesmo email pode existir em tenants diferentes).
+// SUPER_ADMIN: tipicamente vinculado a um tenant "sistema" ou primeiro tenant.
+// =============================================================================
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  name         String
+  email        String
+  passwordHash String
+  role         Role
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment  Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
+  establishmentId String?
+  auditLogs       AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([email])
+}
+
+// =============================================================================
+// ESTABLISHMENT (estabelecimento / loja / restaurante do tenant)
+// Slug: único por tenant (tenantId + slug).
+// =============================================================================
+model Establishment {
+  id            String    @id @default(cuid())
+  tenantId      String
+  name          String
+  slug          String
+  description   String?
+  phone         String?
+  whatsapp      String?
+  email         String?
+  logoUrl       String?
+  bannerUrl     String?
+  addressLine   String?
+  addressNumber String?
+  neighborhood  String?
+  city          String?
+  state         String?
+  zipCode       String?
+  latitude      Decimal?  @db.Decimal(10, 7)
+  longitude     Decimal?  @db.Decimal(10, 7)
+  isActive      Boolean   @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant          Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users           User[]
+  categories      Category[]
+  products        Product[]
+  optionalGroups  OptionalGroup[]
+  carts           Cart[]
+  orders          Order[]
+  payments        Payment[]
+  coupons         Coupon[]
+  deliveryZones   DeliveryZone[]
+  storeSettings   StoreSettings[]
+  banners         Banner[]
+  workingHours    EstablishmentWorkingHours[]
+  tables          Table[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// CATEGORY (categoria de produtos por estabelecimento)
+// =============================================================================
+model Category {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  name            String
+  description     String?
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  products     Product[]
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// PRODUCT (produto do cardápio)
+// Slug: único por estabelecimento. compareAtPrice = preço riscado (promoção).
+// Opcionais: via relação N:N com OptionalGroup (ProductOptionalGroup).
+// =============================================================================
+model Product {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  categoryId      String
+  name            String
+  slug            String
+  description     String?
+  imageUrl        String?
+  price           Decimal  @db.Decimal(10, 2)
+  compareAtPrice  Decimal? @db.Decimal(10, 2)
+  sku             String?
+  isFeatured      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment  Establishment       @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  category       Category            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  optionalGroups ProductOptionalGroup[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+
+  @@unique([establishmentId, slug])
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// OPTIONAL GROUP (grupo de opcionais reutilizável por estabelecimento)
+// Ex.: "Bebidas", "Extras", "Ponto da carne". Relação N:N com Product.
+// =============================================================================
+model OptionalGroup {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  name            String
+  description     String?
+  minSelect       Int      @default(0)
+  maxSelect       Int      @default(1)
+  isRequired      Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  items     OptionalItem[]
+  products  ProductOptionalGroup[]
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// OPTIONAL ITEM (item do grupo: ex. "Coca-Cola", "Bacon", "Ao ponto")
+// =============================================================================
+model OptionalItem {
+  id              String   @id @default(cuid())
+  tenantId        String
+  optionalGroupId String
+  name            String
+  description     String?
+  price           Decimal  @db.Decimal(10, 2) @default(0)
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant   Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  group    OptionalGroup @relation(fields: [optionalGroupId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([optionalGroupId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// PRODUCT <-> OPTIONAL GROUP (N:N)
+// =============================================================================
+model ProductOptionalGroup {
+  productId       String
+  optionalGroupId String
+
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionalGroup OptionalGroup @relation(fields: [optionalGroupId], references: [id], onDelete: Cascade)
+
+  @@id([productId, optionalGroupId])
+  @@index([optionalGroupId])
+}
+
+// =============================================================================
+// ESTABLISHMENT WORKING HOURS (horário de funcionamento por dia)
+// =============================================================================
+model EstablishmentWorkingHours {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  weekday        Weekday
+  openTime       String?   // "09:00"
+  closeTime      String?   // "22:00"
+  isClosed       Boolean   @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@unique([establishmentId, weekday])
+  @@index([tenantId])
+  @@index([establishmentId])
+}
+
+// =============================================================================
+// STORE SETTINGS (configuração por estabelecimento - 1:1 implícito)
+// =============================================================================
+model StoreSettings {
+  id                        String   @id @default(cuid())
+  tenantId                  String
+  establishmentId          String
+  deliveryFee               Decimal? @db.Decimal(10, 2)
+  minimumOrderAmount        Decimal? @db.Decimal(10, 2)
+  estimatedDeliveryTimeMin Int?     // minutos
+  estimatedDeliveryTimeMax Int?     // minutos
+  acceptsPickup             Boolean  @default(true)
+  acceptsDelivery           Boolean  @default(true)
+  acceptsDineIn             Boolean  @default(true)
+  currency                  String   @default("BRL")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, establishmentId])
+  @@index([tenantId])
+  @@index([establishmentId])
+}
+
+// =============================================================================
+// BANNER (banner promocional por estabelecimento)
+// =============================================================================
+model Banner {
+  id              String    @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  title           String
+  subtitle        String?
+  imageUrl        String
+  linkUrl         String?
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// COUPON (cupom de desconto)
+// establishmentId opcional: null = válido para todos os estabelecimentos do tenant.
+// Code: único por tenant (um código por tenant).
+// =============================================================================
+model Coupon {
+  id               String       @id @default(cuid())
+  tenantId         String
+  establishmentId  String?      // null = cupom do tenant (todos os estabelecimentos)
+  code             String
+  description      String?
+  discountType     DiscountType
+  discountValue    Decimal      @db.Decimal(10, 2)
+  minOrderValue    Decimal?     @db.Decimal(10, 2)
+  maxDiscountValue Decimal?     @db.Decimal(10, 2)
+  usageLimit       Int?
+  usageCount       Int          @default(0)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
+  orders        Order[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([code])
+  @@index([isActive])
+}
+
+// =============================================================================
+// CUSTOMER (cliente final do cardápio - escopo tenant)
+// Um cliente pode fazer pedidos em qualquer estabelecimento do tenant.
+// =============================================================================
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  phone     String
+  email     String?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  addresses CustomerAddress[]
+  carts    Cart[]
+  orders   Order[]
+
+  @@index([tenantId])
+  @@index([phone])
+  @@index([email])
+}
+
+// =============================================================================
+// CUSTOMER ADDRESS (endereço de entrega do cliente)
+// =============================================================================
+model CustomerAddress {
+  id          String   @id @default(cuid())
+  tenantId    String
+  customerId  String
+  label       String?  // Casa, Trabalho
+  addressLine String
+  addressNumber String?
+  complement  String?
+  neighborhood String?
+  city        String?
+  state       String?
+  zipCode     String?
+  reference   String?
+  latitude    Decimal? @db.Decimal(10, 7)
+  longitude   Decimal? @db.Decimal(10, 7)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+// =============================================================================
+// ORDER (pedido)
+// orderNumber: sequencial amigável (ex.: 1001). deliveryAddressSnapshot: JSON ou texto do endereço no momento do pedido.
+// =============================================================================
+model Order {
+  id                    String         @id @default(cuid())
+  tenantId               String
+  establishmentId       String
+  customerId             String?
+  couponId               String?
+  orderNumber            String         // sequencial por tenant/establishment (ex.: 1001)
+  type                   OrderType
+  status                 OrderStatus
+  paymentMethod          PaymentMethod?
+  paymentStatus          PaymentStatus  @default(PENDING)
+  subtotalAmount         Decimal        @db.Decimal(10, 2)
+  discountAmount         Decimal        @db.Decimal(10, 2) @default(0)
+  deliveryFee            Decimal        @db.Decimal(10, 2) @default(0)
+  totalAmount            Decimal        @db.Decimal(10, 2)
+  notes                  String?
+  customerName           String?
+  customerPhone          String?
+  deliveryAddressSnapshot String?       // endereço no momento do pedido (texto ou JSON)
+  placedAt               DateTime       @default(now())
+  confirmedAt            DateTime?
+  cancelledAt            DateTime?
+  finishedAt             DateTime?
+  deletedAt              DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  customer   Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  coupon     Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+  payments   Payment[]
+
+  @@unique([tenantId, establishmentId, orderNumber])
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([customerId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([placedAt])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// ORDER ITEM (item do pedido)
+// productId opcional: produto pode ser descontinuado; productNameSnapshot preserva o nome no momento do pedido.
+// =============================================================================
+model OrderItem {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  orderId            String
+  productId          String?  // opcional se produto for removido
+  productNameSnapshot String
+  unitPrice          Decimal  @db.Decimal(10, 2)
+  quantity           Int
+  totalPrice         Decimal  @db.Decimal(10, 2)
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  options OrderItemOption[]
+
+  @@index([tenantId])
+  @@index([orderId])
+  @@index([productId])
+}
+
+// =============================================================================
+// ORDER ITEM OPTION (opcional escolhido no pedido - snapshot)
+// =============================================================================
+model OrderItemOption {
+  id                      String   @id @default(cuid())
+  tenantId                String
+  orderItemId             String
+  optionalGroupNameSnapshot String
+  optionalItemNameSnapshot  String
+  price                   Decimal  @db.Decimal(10, 2)
+  quantity                Int      @default(1)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([orderItemId])
+}
+
+// =============================================================================
+// PAYMENT (transação de pagamento vinculada ao pedido)
+// =============================================================================
+model Payment {
+  id                 String    @id @default(cuid())
+  tenantId           String
+  establishmentId    String
+  orderId            String
+  provider           String?   // stripe, mercadopago, pagseguro, etc
+  method             String    // pix, card, cash, etc (pode espelhar enum)
+  status             String    // pending, approved, rejected, refunded
+  amount             Decimal   @db.Decimal(10, 2)
+  transactionId      String?
+  externalReference  String?
+  paidAt             DateTime?
+  rawPayload         Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([orderId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+// =============================================================================
+// TABLE (mesa/comanda - estrutura preparada para uso futuro)
+// =============================================================================
+model Table {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  name            String
+  number          String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([isActive])
+}
+
+// =============================================================================
+// CART (carrinho - sessão ou cliente)
+// =============================================================================
+model Cart {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  customerId      String?
+  sessionId       String
+  status          String   @default("open") // open, abandoned, converted
+  subtotal        Decimal  @db.Decimal(10, 2) @default(0)
+  discount        Decimal  @db.Decimal(10, 2) @default(0)
+  deliveryFee     Decimal  @db.Decimal(10, 2) @default(0)
+  total           Decimal  @db.Decimal(10, 2) @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items         CartItem[]
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([sessionId])
+  @@index([customerId])
+}
+
+// =============================================================================
+// CART ITEM (item do carrinho)
+// =============================================================================
+model CartItem {
+  id         String  @id @default(cuid())
+  cartId     String
+  productId  String
+  quantity   Int     @default(1)
+  unitPrice  Decimal @db.Decimal(10, 2)
+  notes      String?
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productId])
+}
+
+// =============================================================================
+// DELIVERY ZONE (zona de entrega - taxa e tempo)
+// =============================================================================
+model DeliveryZone {
+  id              String   @id @default(cuid())
+  tenantId        String
+  establishmentId String
+  name            String
+  type            String   // radius, polygon
+  fee             Decimal  @db.Decimal(10, 2)
+  minTime         Int      // minutos
+  maxTime         Int      // minutos
+  isActive        Boolean  @default(true)
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([establishmentId])
+}
+
+// =============================================================================
+// AUDIT LOG (auditoria de ações no painel)
+// =============================================================================
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  action    String   // create, update, delete, login
+  entity    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}
