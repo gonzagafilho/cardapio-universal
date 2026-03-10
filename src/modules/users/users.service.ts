@@ -6,6 +6,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { Role as PrismaRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PlansService } from '../plans/plans.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ROLES } from '../../common/constants/roles';
@@ -21,9 +22,13 @@ function toPrismaRole(role: string): PrismaRole {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly plansService: PlansService,
+  ) {}
 
   async create(tenantId: string, dto: CreateUserDto) {
+    await this.plansService.checkUsersLimit(tenantId);
     const existing = await this.prisma.user.findFirst({
       where: { tenantId, email: dto.email.toLowerCase() },
     });

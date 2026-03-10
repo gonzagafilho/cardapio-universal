@@ -35,7 +35,9 @@ export type AppPermission =
   | 'establishments.create'
   | 'categories.create'
   | 'products.create'
-  | 'users.manage';
+  | 'users.manage'
+  | 'platform.view'
+  | 'billing.view';
 
 type MenuItem = {
   path: string;
@@ -65,6 +67,8 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.create',
     'products.create',
     'users.manage',
+    'platform.view',
+    'billing.view',
   ],
   TENANT_OWNER: [
     'dashboard.view',
@@ -82,6 +86,7 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.create',
     'products.create',
     'users.manage',
+    'billing.view',
   ],
   TENANT_ADMIN: [
     'dashboard.view',
@@ -97,6 +102,7 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.create',
     'products.create',
     'users.manage',
+    'billing.view',
   ],
   MANAGER: [
     'dashboard.view',
@@ -191,6 +197,14 @@ export function canManageUsers(role: Role): boolean {
   return hasPermission(role, 'users.manage');
 }
 
+export function canAccessPlatform(role: Role): boolean {
+  return role === 'SUPER_ADMIN';
+}
+
+export function canAccessBilling(role: Role): boolean {
+  return hasPermission(role, 'billing.view');
+}
+
 export function canAccessPath(role: Role, path: string): boolean {
   if (path === '/dashboard') return canAccessDashboard(role);
   if (path.startsWith('/establishments')) return canAccessEstablishments(role);
@@ -203,11 +217,14 @@ export function canAccessPath(role: Role, path: string): boolean {
   if (path.startsWith('/reports')) return canAccessReports(role);
   if (path.startsWith('/settings')) return canAccessSettings(role);
   if (path.startsWith('/users')) return canAccessUsers(role);
+  if (path.startsWith('/platform')) return canAccessPlatform(role);
+  if (path.startsWith('/billing')) return canAccessBilling(role);
   return false;
 }
 
 export const MENU_ITEMS: MenuItem[] = [
   { path: '/dashboard', label: 'Dashboard', permission: 'dashboard.view', check: canAccessDashboard },
+  { path: '/platform/tenants', label: 'Plataforma', permission: 'platform.view', check: canAccessPlatform },
   {
     path: '/establishments',
     label: 'Estabelecimentos',
@@ -221,6 +238,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { path: '/payments', label: 'Pagamentos', permission: 'payments.view', check: canAccessPayments },
   { path: '/coupons', label: 'Cupons', permission: 'coupons.view', check: canAccessCoupons },
   { path: '/reports', label: 'Relatórios', permission: 'reports.view', check: canAccessReports },
+  { path: '/billing', label: 'Assinatura', permission: 'billing.view', check: canAccessBilling },
   { path: '/settings', label: 'Configurações', permission: 'settings.view', check: canAccessSettings },
   { path: '/users', label: 'Usuários', permission: 'users.view', check: canAccessUsers },
 ];

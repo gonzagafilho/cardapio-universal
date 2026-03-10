@@ -29,7 +29,9 @@ export class SettingsService {
   ) {
     const data: Record<string, unknown> = { ...dto };
     if (dto.minimumOrder != null) data.minimumOrderAmount = new Decimal(dto.minimumOrder);
+    if (dto.minimumOrderDelivery != null) data.minimumOrderAmountDelivery = new Decimal(dto.minimumOrderDelivery);
     delete data.minimumOrder;
+    delete data.minimumOrderDelivery;
     delete data.primaryColor;
     delete data.secondaryColor;
     delete data.accentColor;
@@ -79,12 +81,14 @@ export class SettingsService {
     data: {
       acceptsDelivery?: boolean;
       minimumOrder?: number;
+      minimumOrderDelivery?: number;
       deliveryEstimate?: number;
     },
   ) {
     const update: Record<string, unknown> = {};
     if (data.acceptsDelivery != null) update.acceptsDelivery = data.acceptsDelivery;
     if (data.minimumOrder != null) update.minimumOrderAmount = new Decimal(data.minimumOrder);
+    if (data.minimumOrderDelivery != null) update.minimumOrderAmountDelivery = new Decimal(data.minimumOrderDelivery);
     if (data.deliveryEstimate != null) {
       update.estimatedDeliveryTimeMin = data.deliveryEstimate;
       update.estimatedDeliveryTimeMax = data.deliveryEstimate;

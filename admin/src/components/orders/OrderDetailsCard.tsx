@@ -9,7 +9,7 @@ export function OrderDetailsCard({ order }: { order: Order }) {
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold text-gray-900">Pedido #{order.code}</h3>
+        <h3 className="font-semibold text-gray-900">Pedido #{order.code ?? order.orderNumber ?? order.id}</h3>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p>
@@ -21,6 +21,12 @@ export function OrderDetailsCard({ order }: { order: Order }) {
         <p>
           <span className="text-gray-500">Tipo:</span> {order.type}
         </p>
+        {order.table && (
+          <p>
+            <span className="text-gray-500">Mesa/comanda:</span> {order.table.name}
+            {order.table.number ? ` (${order.table.number})` : ''}
+          </p>
+        )}
         <p>
           <span className="text-gray-500">Pagamento:</span> {order.paymentMethod ?? '-'}
         </p>

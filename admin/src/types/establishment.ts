@@ -3,6 +3,7 @@ export interface Establishment {
   tenantId: string;
   name: string;
   slug: string;
+  customDomain: string | null;
   logoUrl: string | null;
   bannerUrl: string | null;
   phone: string | null;
@@ -21,6 +22,7 @@ export interface Establishment {
 export interface CreateEstablishmentDto {
   name: string;
   slug: string;
+  customDomain?: string;
   logoUrl?: string;
   bannerUrl?: string;
   phone?: string;

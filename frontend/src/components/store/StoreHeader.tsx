@@ -10,15 +10,18 @@ export interface StoreHeaderProps {
   store: Store;
   storeSlug: string;
   onCartClick?: () => void;
+  /** Base path para links ('' = domínio custom; '/'+slug = padrão). */
+  linkBase?: string;
 }
 
-export function StoreHeader({ store, storeSlug, onCartClick }: StoreHeaderProps) {
+export function StoreHeader({ store, storeSlug, onCartClick, linkBase }: StoreHeaderProps) {
   const itemCount = useCart().itemCount;
+  const base = linkBase !== undefined ? linkBase : `/${storeSlug}`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        <Link href={`/${storeSlug}`} className="flex items-center gap-2">
+        <Link href={base || '/'} className="flex items-center gap-2">
           {store.logoUrl ? (
             <Image
               src={store.logoUrl}

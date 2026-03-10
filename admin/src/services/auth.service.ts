@@ -2,6 +2,18 @@ import { apiGet, apiPost } from './api';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from '@/lib/constants';
 import type { AuthResponse, UserSession } from '@/types/auth';
 
+export interface OnboardingPayload {
+  companyName: string;
+  companySlug: string;
+  ownerName: string;
+  email: string;
+  password: string;
+  storeName: string;
+  storeSlug?: string;
+  phone?: string;
+  storeDescription?: string;
+}
+
 /** Resposta do backend GET /auth/me (pode incluir tenant/establishment) */
 interface MeApiResponse {
   id: string;
@@ -17,6 +29,38 @@ export async function login(email: string, password: string): Promise<AuthRespon
     email: email.trim().toLowerCase(),
     password,
   });
+  if (typeof window !== 'undefined' && (res?.accessToken ?? res?.tokens?.accessToken)) {
+    const token = res.accessToken ?? res.tokens?.accessToken;
+    localStorage.setItem(TOKEN_KEY, token);
+    if (res.tokens?.refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, res.tokens.refreshToken);
+    }
+    if (res.user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    }
+  }
+  return res as AuthResponse;
+}
+
+/**
+ * Cadastro inicial: cria tenant + estabelecimento + usuário dono.
+ * Retorna mesma estrutura do login; tokens e user são persistidos como no login.
+ */
+export async function onboardingRegister(payload: OnboardingPayload): Promise<AuthResponse> {
+  const res = await apiPost<AuthResponse & { ok?: boolean; accessToken?: string }>(
+    '/auth/onboarding',
+    {
+      companyName: payload.companyName.trim(),
+      companySlug: payload.companySlug.trim().toLowerCase().replace(/\s+/g, '-'),
+      ownerName: payload.ownerName.trim(),
+      email: payload.email.trim().toLowerCase(),
+      password: payload.password,
+      storeName: payload.storeName.trim(),
+      storeSlug: payload.storeSlug?.trim() || undefined,
+      phone: payload.phone?.trim() || undefined,
+      storeDescription: payload.storeDescription?.trim() || undefined,
+    }
+  );
   if (typeof window !== 'undefined' && (res?.accessToken ?? res?.tokens?.accessToken)) {
     const token = res.accessToken ?? res.tokens?.accessToken;
     localStorage.setItem(TOKEN_KEY, token);

@@ -17,9 +17,16 @@ interface PageProps {
 export default function CheckoutPage({ params }: PageProps) {
   const { storeSlug } = params;
   const router = useRouter();
-  const { store, loading, error } = useStoreData(storeSlug);
+  const { store, settings, loading, error } = useStoreData(storeSlug);
   const { items, establishmentId, subtotal, discount, deliveryFee, total } = useCart();
   const { submitOrder, loading: submitting, error: submitError, order } = useCheckout();
+
+  const minDelivery =
+    settings?.minimumOrderDelivery != null
+      ? Number(settings.minimumOrderDelivery)
+      : settings?.minimumOrder != null
+        ? Number(settings.minimumOrder)
+        : null;
 
   const handleSubmit = async (data: import('@/components/store/CheckoutForm').CheckoutFormData) => {
     try {
@@ -35,6 +42,7 @@ export default function CheckoutPage({ params }: PageProps) {
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         deliveryAddress: fullAddress,
+        tableId: data.tableId,
       });
       if (result) {
         router.push(`/${storeSlug}/success?orderId=${result.id}`);
@@ -88,6 +96,11 @@ export default function CheckoutPage({ params }: PageProps) {
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <h2 className="font-semibold text-gray-900">Resumo do pedido</h2>
+            {minDelivery != null && (
+              <p className="mt-1 text-sm text-gray-600">
+                Pedido mínimo para entrega: R$ {minDelivery.toFixed(2).replace('.', ',')}
+              </p>
+            )}
             <CartSummary
               subtotal={subtotal}
               discount={discount}

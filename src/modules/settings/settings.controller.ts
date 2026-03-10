@@ -81,7 +81,7 @@ export class SettingsController {
   updateDelivery(
     @TenantId() tenantId: string,
     @Query('establishmentId') establishmentId: string,
-    @Body() data: { acceptsDelivery?: boolean; minimumOrder?: number; deliveryEstimate?: number },
+    @Body() data: { acceptsDelivery?: boolean; minimumOrder?: number; minimumOrderDelivery?: number; deliveryEstimate?: number },
   ) {
     return this.settingsService.updateDelivery(tenantId, establishmentId, data);
   }

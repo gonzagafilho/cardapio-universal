@@ -11,7 +11,8 @@ dist/
 .env
 .env.local
 .env.*.local
-
+.env.production
+.env.production.local
 # Logs and temp
 *.log
 npm-debug.log*
@@ -25,3 +26,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+.env.production
+.env.production.local

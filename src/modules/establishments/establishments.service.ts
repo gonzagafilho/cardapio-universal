@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PlansService } from '../plans/plans.service';
 import { CreateEstablishmentDto } from './dto/create-establishment.dto';
 import { UpdateEstablishmentDto } from './dto/update-establishment.dto';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
@@ -12,7 +13,10 @@ import { ROLES } from '../../common/constants/roles';
 
 @Injectable()
 export class EstablishmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly plansService: PlansService,
+  ) {}
 
   private canAccessEstablishment(
     user: JwtPayload,
@@ -28,6 +32,7 @@ export class EstablishmentsService {
   }
 
   async create(tenantId: string, dto: CreateEstablishmentDto) {
+    await this.plansService.checkEstablishmentsLimit(tenantId);
     const slug = (dto.slug ?? dto.name).toLowerCase().replace(/\s+/g, '-');
     const existing = await this.prisma.establishment.findUnique({
       where: { tenantId_slug: { tenantId, slug } },
@@ -94,10 +99,33 @@ export class EstablishmentsService {
       });
       if (existing) throw new ConflictException('Slug já em uso');
     }
-    return this.prisma.establishment.update({
-      where: { id },
-      data: { ...dto, ...(slug && { slug }) },
-    });
+    const customDomain =
+      dto.customDomain !== undefined
+        ? (dto.customDomain?.trim() || null)
+          ? dto.customDomain.split(':')[0].toLowerCase().trim()
+          : null
+        : undefined;
+    if (customDomain !== undefined && customDomain) {
+      const existing = await this.prisma.establishment.findFirst({
+        where: { customDomain, id: { not: id } },
+      });
+      if (existing) throw new ConflictException('Este domínio já está em uso por outro estabelecimento');
+    }
+    try {
+      return await this.prisma.establishment.update({
+        where: { id },
+        data: {
+          ...dto,
+          ...(slug && { slug }),
+          ...(customDomain !== undefined && { customDomain }),
+        },
+      });
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+        throw new ConflictException('Este domínio já está em uso');
+      }
+      throw e;
+    }
   }
 
   async remove(tenantId: string, id: string, user: JwtPayload) {

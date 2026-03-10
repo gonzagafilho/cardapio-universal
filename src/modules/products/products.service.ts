@@ -28,6 +28,7 @@ export class ProductsService {
         compareAtPrice: dto.promotionalPrice != null ? new Decimal(dto.promotionalPrice) : undefined,
         sku: dto.sku,
         isActive: dto.isActive ?? true,
+        isAvailable: dto.isAvailable ?? true,
         isFeatured: dto.isFeatured ?? false,
         sortOrder: dto.sortOrder ?? 0,
       },

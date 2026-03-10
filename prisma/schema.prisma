@@ -69,6 +69,22 @@ enum Weekday {
   SATURDAY
 }
 
+// Billing SaaS (cobrança recorrente do tenant – separado de Payment que é pedido)
+enum SubscriptionStatus {
+  active
+  cancelled
+  past_due
+  trialing
+}
+
+enum InvoiceStatus {
+  draft
+  open
+  paid
+  void
+  uncollectible
+}
+
 // =============================================================================
 // TENANT (empresa dona do sistema / multi-tenant)
 // =============================================================================
@@ -109,6 +125,9 @@ model Tenant {
   workingHours         EstablishmentWorkingHours[]
   tables               Table[]
   auditLogs            AuditLog[]
+  subscriptions       Subscription[]
+  subscriptionInvoices SubscriptionInvoice[]
+  billingEvents        BillingEvent[]
 
   @@index([slug])
   @@index([isActive])
@@ -152,6 +171,7 @@ model Establishment {
   tenantId      String
   name          String
   slug          String
+  customDomain  String?   @unique // domínio personalizado (ex.: menu.pizzariadojoao.com.br); premium
   description   String?
   phone         String?
   whatsapp      String?
@@ -189,6 +209,7 @@ model Establishment {
   @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([isActive])
+  @@index([customDomain])
 }
 
 // =============================================================================
@@ -234,6 +255,7 @@ model Product {
   sku             String?
   isFeatured      Boolean  @default(false)
   isActive        Boolean  @default(true)
+  isAvailable     Boolean  @default(true) // false = esgotado agora (ainda no cardápio)
   sortOrder       Int      @default(0)
   deletedAt       DateTime?
   createdAt       DateTime @default(now())
@@ -347,8 +369,9 @@ model StoreSettings {
   id                        String   @id @default(cuid())
   tenantId                  String
   establishmentId          String
-  deliveryFee               Decimal? @db.Decimal(10, 2)
-  minimumOrderAmount        Decimal? @db.Decimal(10, 2)
+  deliveryFee                   Decimal? @db.Decimal(10, 2)
+  minimumOrderAmount            Decimal? @db.Decimal(10, 2)
+  minimumOrderAmountDelivery    Decimal? @db.Decimal(10, 2) // mínimo só para entrega
   estimatedDeliveryTimeMin Int?     // minutos
   estimatedDeliveryTimeMax Int?     // minutos
   acceptsPickup             Boolean  @default(true)
@@ -502,6 +525,7 @@ model Order {
   customerName           String?
   customerPhone          String?
   deliveryAddressSnapshot String?       // endereço no momento do pedido (texto ou JSON)
+  tableId                 String?       // mesa/comanda (consumo no local)
   placedAt               DateTime       @default(now())
   confirmedAt            DateTime?
   cancelledAt            DateTime?
@@ -514,6 +538,7 @@ model Order {
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   customer   Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
   coupon     Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  table      Table?         @relation(fields: [tableId], references: [id], onDelete: SetNull)
   items      OrderItem[]
   payments   Payment[]
 
@@ -521,6 +546,7 @@ model Order {
   @@index([tenantId])
   @@index([establishmentId])
   @@index([customerId])
+  @@index([tableId])
   @@index([status])
   @@index([paymentStatus])
   @@index([placedAt])
@@ -620,6 +646,7 @@ model Table {
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  orders       Order[]
 
   @@index([tenantId])
   @@index([establishmentId])
@@ -713,5 +740,68 @@ model AuditLog {
   @@index([tenantId])
   @@index([userId])
   @@index([entity])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// BILLING SAAS (cobrança recorrente – não confundir com Payment do pedido)
+// =============================================================================
+
+model Subscription {
+  id                    String    @id @default(cuid())
+  tenantId              String    @unique
+  plan                  String    // basic, pro, enterprise (espelha Tenant.plan)
+  status                SubscriptionStatus @default(active)
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean   @default(false)
+  cancelledAt          DateTime?
+  externalSubscriptionId String?  // id no gateway (Stripe, etc.)
+  provider             String?   // stripe, mercadopago, etc.
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoices SubscriptionInvoice[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([externalSubscriptionId])
+}
+
+model SubscriptionInvoice {
+  id                 String        @id @default(cuid())
+  tenantId           String
+  subscriptionId     String?
+  amount             Decimal       @db.Decimal(10, 2)
+  currency           String        @default("BRL")
+  status             InvoiceStatus  @default(draft)
+  dueAt              DateTime?
+  paidAt             DateTime?
+  externalInvoiceId  String?
+  provider           String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([externalInvoiceId])
+}
+
+model BillingEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  eventType String   // subscription.created, invoice.paid, webhook.received, etc.
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([eventType])
   @@index([createdAt])
 }

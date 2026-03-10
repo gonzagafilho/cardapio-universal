@@ -24,7 +24,8 @@ export interface Order {
   tenantId: string;
   establishmentId: string;
   customerId: string | null;
-  code: string;
+  code?: string;
+  orderNumber?: string;
   type: string;
   status: OrderStatus;
   paymentStatus: string;
@@ -37,6 +38,8 @@ export interface Order {
   customerName: string | null;
   customerPhone: string | null;
   deliveryAddress: string | null;
+  tableId?: string | null;
+  table?: { id: string; name: string; number: string | null } | null;
   createdAt: string;
   updatedAt: string;
   items?: OrderItem[];

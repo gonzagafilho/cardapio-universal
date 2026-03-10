@@ -14,7 +14,9 @@ import {
   getMe,
   login as authLogin,
   logout as authLogout,
+  onboardingRegister as authOnboardingRegister,
 } from '@/services/auth.service';
+import type { OnboardingPayload } from '@/services/auth.service';
 import type { AuthResponse, UserSession } from '@/types/auth';
 import { TOKEN_KEY } from '@/lib/constants';
 
@@ -23,6 +25,7 @@ export interface AuthContextValue {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
+  registerOnboarding: (data: OnboardingPayload) => Promise<AuthResponse>;
   logout: () => void;
   refreshUser: () => Promise<UserSession>;
 }
@@ -88,6 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [router]
   );
 
+  const registerOnboarding = useCallback(
+    async (data: OnboardingPayload) => {
+      const res = await authOnboardingRegister(data);
+      setUser(res.user);
+      router.push('/dashboard');
+      return res;
+    },
+    [router]
+  );
+
   const logout = useCallback(() => {
     authLogout();
     setUser(null);
@@ -112,10 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isAuthenticated: !!user,
       login,
+      registerOnboarding,
       logout,
       refreshUser,
     }),
-    [user, loading, login, logout, refreshUser]
+    [user, loading, login, registerOnboarding, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

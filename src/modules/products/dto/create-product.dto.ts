@@ -45,6 +45,11 @@ export class CreateProductDto {
   @IsBoolean()
   isActive?: boolean;
 
+  @ApiPropertyOptional({ description: 'Disponível para venda agora (false = esgotado temporariamente)' })
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

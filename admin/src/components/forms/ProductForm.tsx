@@ -24,6 +24,7 @@ export function ProductForm({
   const [promotionalPrice, setPromotionalPrice] = useState(defaultValues?.promotionalPrice ?? '');
   const [categoryId, setCategoryId] = useState(defaultValues?.categoryId ?? '');
   const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true);
+  const [isAvailable, setIsAvailable] = useState(defaultValues?.isAvailable ?? true);
   const [isFeatured, setIsFeatured] = useState(defaultValues?.isFeatured ?? false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,6 +36,7 @@ export function ProductForm({
       promotionalPrice: promotionalPrice ? Number(promotionalPrice) : undefined,
       categoryId,
       isActive,
+      isAvailable,
       isFeatured,
     });
   };
@@ -67,7 +69,11 @@ export function ProductForm({
       />
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-        <span className="text-sm">Ativo</span>
+        <span className="text-sm">Ativo (no cardápio)</span>
+      </label>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
+        <span className="text-sm">Disponível agora (desmarque = esgotado)</span>
       </label>
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />

@@ -1,14 +1,26 @@
 import { Controller, Post, Get, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService, AuthResponse, TokenPair } from './auth.service';
-import { LoginDto, RefreshTokenDto } from './dto';
+import { OnboardingService } from './onboarding.service';
+import { LoginDto, RefreshTokenDto, OnboardingDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly onboardingService: OnboardingService,
+  ) {}
+
+  @Public()
+  @Post('onboarding')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Cadastro inicial (tenant + estabelecimento + usuário dono)' })
+  async onboarding(@Body() dto: OnboardingDto): Promise<AuthResponse> {
+    return this.onboardingService.register(dto);
+  }
 
   @Public()
   @Post('login')

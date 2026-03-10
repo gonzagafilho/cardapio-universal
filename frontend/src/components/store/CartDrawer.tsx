@@ -11,9 +11,12 @@ export interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
   storeSlug: string;
+  /** Base path para links ('' = domínio custom). */
+  linkBase?: string;
 }
 
-export function CartDrawer({ open, onClose, storeSlug }: CartDrawerProps) {
+export function CartDrawer({ open, onClose, storeSlug, linkBase }: CartDrawerProps) {
+  const cartHref = linkBase !== undefined ? (linkBase ? `${linkBase}/cart` : '/cart') : `/${storeSlug}/cart`;
   const { items, subtotal, discount, deliveryFee, total, updateQuantity, removeItem } =
     useCart();
 
@@ -98,7 +101,7 @@ export function CartDrawer({ open, onClose, storeSlug }: CartDrawerProps) {
               deliveryFee={deliveryFee}
               total={total}
             />
-            <Link href={`/${storeSlug}/cart`} onClick={onClose}>
+            <Link href={cartHref} onClick={onClose}>
               <Button fullWidth size="lg" className="mt-4">
                 Ver carrinho e finalizar
               </Button>

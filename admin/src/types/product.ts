@@ -29,6 +29,7 @@ export interface Product {
   promotionalPrice: number | null;
   sku: string | null;
   isActive: boolean;
+  isAvailable?: boolean;
   isFeatured: boolean;
   sortOrder: number;
   createdAt: string;
@@ -46,6 +47,7 @@ export interface CreateProductDto {
   sku?: string;
   categoryId: string;
   isActive?: boolean;
+  isAvailable?: boolean;
   isFeatured?: boolean;
   sortOrder?: number;
 }

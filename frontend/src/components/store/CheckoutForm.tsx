@@ -19,6 +19,7 @@ export interface CheckoutFormData {
   orderType: OrderType;
   paymentMethod: string;
   changeFor?: string;
+  tableId?: string;
 }
 
 export interface CheckoutFormProps {

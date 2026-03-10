@@ -13,7 +13,10 @@ export function SettingsForm({
   loading?: boolean;
 }) {
   const [primaryColor, setPrimaryColor] = useState((defaultValues?.primaryColor as string) ?? '');
-  const [minimumOrder, setMinimumOrder] = useState((defaultValues?.minimumOrder as number) ?? '');
+  const [minimumOrder, setMinimumOrder] = useState((defaultValues?.minimumOrder as number) ?? (defaultValues?.minimumOrderAmount as number) ?? '');
+  const [minimumOrderDelivery, setMinimumOrderDelivery] = useState(
+    (defaultValues?.minimumOrderDelivery as number) ?? (defaultValues?.minimumOrderAmountDelivery as number) ?? ''
+  );
   const [pixKey, setPixKey] = useState((defaultValues?.pixKey as string) ?? '');
   const [acceptsDelivery, setAcceptsDelivery] = useState((defaultValues?.acceptsDelivery as boolean) ?? true);
   const [acceptsPickup, setAcceptsPickup] = useState((defaultValues?.acceptsPickup as boolean) ?? true);
@@ -23,6 +26,7 @@ export function SettingsForm({
     onSubmit({
       primaryColor,
       minimumOrder: minimumOrder ? Number(minimumOrder) : undefined,
+      minimumOrderDelivery: minimumOrderDelivery ? Number(minimumOrderDelivery) : undefined,
       pixKey,
       acceptsDelivery,
       acceptsPickup,
@@ -38,11 +42,19 @@ export function SettingsForm({
         placeholder="#0f766e"
       />
       <Input
-        label="Pedido mínimo (R$)"
+        label="Pedido mínimo geral (R$)"
         type="number"
         step="0.01"
         value={minimumOrder}
         onChange={(e) => setMinimumOrder(e.target.value === '' ? 0 : Number(e.target.value))}
+      />
+      <Input
+        label="Pedido mínimo só entrega (R$)"
+        type="number"
+        step="0.01"
+        value={minimumOrderDelivery}
+        onChange={(e) => setMinimumOrderDelivery(e.target.value === '' ? 0 : Number(e.target.value))}
+        placeholder="Opcional; se vazio usa o mínimo geral"
       />
       <Input label="Chave PIX" value={pixKey} onChange={(e) => setPixKey(e.target.value)} />
       <label className="flex items-center gap-2">

@@ -6,6 +6,8 @@ import {
   IsUrl,
   MinLength,
   IsBoolean,
+  Matches,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateEstablishmentDto {
@@ -73,4 +75,13 @@ export class CreateEstablishmentDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Domínio personalizado (ex.: menu.loja.com.br)' })
+  @IsOptional()
+  @IsString()
+  @ValidateIf((_o, v) => v != null && String(v).trim() !== '')
+  @Matches(/^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i, {
+    message: 'Domínio deve ser um hostname válido (ex.: menu.sualoja.com.br)',
+  })
+  customDomain?: string;
 }

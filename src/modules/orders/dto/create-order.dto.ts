@@ -43,4 +43,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   deliveryAddress?: string;
+
+  @ApiPropertyOptional({ description: 'ID da mesa/comanda (consumo no local)' })
+  @IsOptional()
+  @IsString()
+  tableId?: string;
 }

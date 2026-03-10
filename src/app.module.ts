@@ -21,6 +21,8 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { HealthModule } from './modules/health/health.module';
 import { StorePublicModule } from './modules/store-public/store-public.module';
+import { PlansModule } from './modules/plans/plans.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -54,6 +56,8 @@ import authConfig from './config/auth/auth.config';
     AuditModule,
     HealthModule,
     StorePublicModule,
+    PlansModule,
+    BillingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

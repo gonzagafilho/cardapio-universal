@@ -1,6 +1,12 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
+/** Host padrão do app público (acesso por slug). Outro host = domínio personalizado. */
+export const APP_HOST = process.env.NEXT_PUBLIC_APP_HOST ?? 'localhost';
+
+/** URL base do admin (para CTAs: Entrar, Criar conta / onboarding). */
+export const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'https://admin.cardapio.nexoracloud.com.br';
+
 export const ORDER_TYPES = [
   { value: 'delivery', label: 'Entrega' },
   { value: 'pickup', label: 'Retirada' },

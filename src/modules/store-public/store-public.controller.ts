@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { StorePublicService } from './store-public.service';
 import { Public } from '../../common/decorators/public.decorator';
@@ -7,6 +7,16 @@ import { Public } from '../../common/decorators/public.decorator';
 @Controller('public/store')
 export class StorePublicController {
   constructor(private readonly storePublicService: StorePublicService) {}
+
+  @Get('by-host')
+  @Public()
+  @ApiOperation({ summary: 'Dados da loja pelo domínio personalizado (query host=)' })
+  getStoreByHost(@Query('host') host: string) {
+    return this.storePublicService.getStoreByHost(host).then((store) => {
+      if (!store) throw new NotFoundException('Loja não encontrada');
+      return store;
+    });
+  }
 
   @Get(':slug')
   @Public()

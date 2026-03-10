@@ -12,12 +12,16 @@ export interface ProductCardProps {
 export function ProductCard({ product, onClick }: ProductCardProps) {
   const price = Number(product.promotionalPrice ?? product.price);
   const hasPromo = product.promotionalPrice != null && Number(product.promotionalPrice) < Number(product.price);
+  const unavailable = product.isAvailable === false;
 
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="flex w-full gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-primary/30 hover:shadow-md"
+      onClick={unavailable ? undefined : onClick}
+      disabled={unavailable}
+      className={`flex w-full gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-sm transition ${
+        unavailable ? 'cursor-not-allowed opacity-75' : 'hover:border-primary/30 hover:shadow-md'
+      }`}
     >
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
         {product.imageUrl ? (
@@ -33,7 +37,12 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
             {product.name.charAt(0)}
           </div>
         )}
-        {product.isFeatured && (
+        {unavailable && (
+          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-sm font-medium text-white">
+            Esgotado
+          </span>
+        )}
+        {!unavailable && product.isFeatured && (
           <span className="absolute left-1 top-1 rounded bg-amber-500 px-1.5 py-0.5 text-xs font-medium text-white">
             Destaque
           </span>

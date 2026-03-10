@@ -10,3 +10,4 @@ export * from './CheckoutForm';
 export * from './PaymentMethods';
 export * from './OrderTimeline';
 export * from './StoreFooter';
+export * from './CustomDomainStorePage';

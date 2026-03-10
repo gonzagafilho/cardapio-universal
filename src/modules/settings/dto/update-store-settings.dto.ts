@@ -42,6 +42,11 @@ export class UpdateStoreSettingsDto {
   @IsNumber()
   minimumOrder?: number;
 
+  @ApiPropertyOptional({ description: 'Pedido mínimo somente para entrega (R$)' })
+  @IsOptional()
+  @IsNumber()
+  minimumOrderDelivery?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()

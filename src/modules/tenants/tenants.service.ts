@@ -40,6 +40,7 @@ export class TenantsService {
     if (user.role === ROLES.SUPER_ADMIN) {
       return this.prisma.tenant.findMany({
         orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { establishments: true, users: true } } },
       });
     }
     return this.prisma.tenant.findMany({

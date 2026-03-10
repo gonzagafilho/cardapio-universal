@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,6 +87,13 @@ export default function LoginPage() {
           <Button type="submit" fullWidth loading={loading}>
             Entrar
           </Button>
+
+          <p className="mt-4 text-center text-sm text-gray-600">
+            Não tem conta?{' '}
+            <Link href="/onboarding" className="font-medium text-primary hover:underline">
+              Criar minha conta
+            </Link>
+          </p>
         </form>
       </div>
     </div>

@@ -27,6 +27,7 @@ export interface StoreSettings {
   acceptsDineIn: boolean;
   pixKey?: string | null;
   minimumOrder?: number | null;
+  minimumOrderDelivery?: number | null;
   deliveryEstimate?: number | null;
 }
 

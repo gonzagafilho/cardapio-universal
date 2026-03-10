@@ -95,9 +95,16 @@ export function ProductModal({
 
   if (!product) return null;
 
+  const unavailable = product.isAvailable === false;
+
   return (
     <Modal open={open} onClose={handleClose} title={product.name}>
       <div className="space-y-4">
+        {unavailable && (
+          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            Este produto está temporariamente indisponível.
+          </p>
+        )}
         {product.imageUrl && (
           <div className="relative -mx-4 -mt-4 aspect-video overflow-hidden rounded-t-xl bg-gray-100">
             <Image
@@ -211,9 +218,9 @@ export function ProductModal({
           fullWidth
           size="lg"
           onClick={handleAdd}
-          disabled={!canSubmit}
+          disabled={!canSubmit || unavailable}
         >
-          Adicionar ao carrinho
+          {unavailable ? 'Indisponível' : 'Adicionar ao carrinho'}
         </Button>
       </div>
     </Modal>

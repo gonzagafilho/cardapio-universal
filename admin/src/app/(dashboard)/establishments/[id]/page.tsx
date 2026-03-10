@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
 import { AccessDenied } from '@/components/auth/AccessDenied';
 import { canAccessEstablishments, canCreateEstablishments } from '@/lib/permissions';
+import { CardapioQRSection } from '@/components/establishment/CardapioQRSection';
 import type { Establishment } from '@/types/establishment';
 import type { UpdateEstablishmentDto } from '@/types/establishment';
 
@@ -55,6 +56,17 @@ export default function EstablishmentDetailPage() {
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">{establishment.name}</h1>
       </div>
+      {establishment.slug && (
+        <CardapioQRSection slug={establishment.slug} />
+      )}
+      {establishment.customDomain && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-medium">Domínio personalizado: {establishment.customDomain}</p>
+          <p className="mt-1 text-amber-700">
+            O cardápio pode ser acessado por esse domínio. Configure DNS, SSL e proxy na infraestrutura. O link por slug continua funcionando.
+          </p>
+        </div>
+      )}
       <EstablishmentForm
         defaultValues={{
           ...establishment,
@@ -68,6 +80,7 @@ export default function EstablishmentDetailPage() {
           city: establishment.city ?? undefined,
           state: establishment.state ?? undefined,
           zipCode: establishment.zipCode ?? undefined,
+          customDomain: establishment.customDomain ?? undefined,
         }}
         onSubmit={handleSubmit}
         loading={saving}

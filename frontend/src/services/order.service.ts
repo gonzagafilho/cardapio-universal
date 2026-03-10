@@ -13,6 +13,7 @@ export interface CreateOrderDto {
   customerPhone?: string;
   deliveryAddress?: string;
   customerId?: string;
+  tableId?: string;
 }
 
 export async function createOrder(dto: CreateOrderDto): Promise<Order> {

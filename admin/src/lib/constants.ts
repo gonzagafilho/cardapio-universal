@@ -1,6 +1,14 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
+/** URL base do app público (cardápio). Definir NEXT_PUBLIC_APP_URL em produção. */
+export const APP_PUBLIC_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+/** Host do app público (para instruções CNAME). Ex.: app.cardapio.nexoracloud.com.br */
+export const APP_PUBLIC_HOST =
+  process.env.NEXT_PUBLIC_APP_HOST ?? (typeof window !== 'undefined' ? new URL(APP_PUBLIC_URL).hostname : 'app.cardapio.nexoracloud.com.br');
+
 export const TOKEN_KEY = 'admin_access_token';
 export const REFRESH_TOKEN_KEY = 'admin_refresh_token';
 export const USER_KEY = 'admin_user';

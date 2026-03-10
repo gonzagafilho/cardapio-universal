@@ -25,6 +25,7 @@ export interface Product {
   promotionalPrice?: number | null;
   sku?: string | null;
   isActive: boolean;
+  isAvailable?: boolean;
   isFeatured?: boolean;
   sortOrder: number;
   categoryId: string;
