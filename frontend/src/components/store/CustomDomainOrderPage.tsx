@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
 import { useOrderTracking } from '@/hooks/useOrderTracking';
-import { StoreHeader, OrderTimeline, StoreFooter } from '@/components/store';
+import { StoreHeader, OrderTimeline, StoreFooter, DomainNotFound } from '@/components/store';
 import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -17,13 +17,7 @@ export function CustomDomainOrderPage({ host, orderId }: { host: string; orderId
   const { order, loading: orderLoading, error: orderError } = useOrderTracking(orderId);
 
   if (storeLoading) return <LoadingPage />;
-  if (storeError || !store) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <EmptyState title="Loja não encontrada" description={storeError ?? undefined} />
-      </div>
-    );
-  }
+  if (storeError || !store) return <DomainNotFound host={host} description={storeError ?? undefined} />;
 
   if (orderLoading) return <LoadingPage />;
   if (orderError || !order) {

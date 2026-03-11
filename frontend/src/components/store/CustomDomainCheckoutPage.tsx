@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
 import { useCheckout } from '@/hooks/useCheckout';
-import { StoreHeader, CheckoutForm, CartSummary, StoreFooter } from '@/components/store';
+import { StoreHeader, CheckoutForm, CartSummary, StoreFooter, DomainNotFound } from '@/components/store';
 import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -41,11 +41,7 @@ export function CustomDomainCheckoutPage({ host }: { host: string }) {
 
   if (loading) return <LoadingPage />;
   if (error || !store) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <EmptyState title="Loja não encontrada" description={error ?? undefined} />
-      </div>
-    );
+    return <DomainNotFound host={host} description={error ?? undefined} />;
   }
 
   if (items.length === 0 && !order) {

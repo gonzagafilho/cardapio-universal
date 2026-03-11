@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #111111;
+  --color-secondary: #1f1f1f;
+  --color-accent: #4b5563;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8f8f8;
+  --color-border: #e5e7eb;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply bg-gray-100 text-gray-900 antialiased;
+  @apply bg-white text-gray-900 antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }

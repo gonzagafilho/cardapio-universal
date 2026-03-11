@@ -14,7 +14,7 @@ export function TopProducts({ data }: { data: Item[] }) {
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold text-gray-900">Top produtos</h3>
+        <h3 className="font-semibold text-gray-900">Produtos mais vendidos</h3>
       </CardHeader>
       <CardContent>
         <ul className="space-y-2">

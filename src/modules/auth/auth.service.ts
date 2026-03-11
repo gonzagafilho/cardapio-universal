@@ -28,6 +28,8 @@ export interface AuthResponse {
   };
   accessToken: string;
   tokens: TokenPair;
+  /** Link do cardápio público (apenas no onboarding). */
+  publicCardUrl?: string;
 }
 
 @Injectable()

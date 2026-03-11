@@ -7,6 +7,8 @@ export interface DrawerProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Exibe badge numérico ao lado do título (ex: quantidade no carrinho). */
+  badge?: number;
   side?: 'left' | 'right';
   children: React.ReactNode;
   className?: string;
@@ -16,6 +18,7 @@ export function Drawer({
   open,
   onClose,
   title,
+  badge,
   side = 'right',
   children,
   className,
@@ -56,18 +59,25 @@ export function Drawer({
         role="dialog"
         aria-modal
         className={cn(
-          'absolute top-0 bottom-0 w-full max-w-sm bg-white shadow-xl transition-transform',
+          'absolute top-0 bottom-0 w-full max-w-sm flex flex-col bg-white shadow-xl transition-transform',
           sideClasses,
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              {title}
+              {badge != null && badge > 0 && (
+                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-900 px-2 text-xs font-bold text-white">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
+            </h2>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+              className="rounded-xl p-2 text-gray-500 hover:bg-gray-100 transition-colors"
               aria-label="Fechar"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -76,7 +86,7 @@ export function Drawer({
             </button>
           </div>
         )}
-        <div className="overflow-y-auto h-full">{children}</div>
+        <div className="overflow-y-auto flex-1 min-h-0">{children}</div>
       </aside>
     </div>
   );

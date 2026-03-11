@@ -19,31 +19,31 @@ export function StoreHeader({ store, storeSlug, onCartClick, linkBase }: StoreHe
   const base = linkBase !== undefined ? linkBase : `/${storeSlug}`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/98 backdrop-blur-sm">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        <Link href={base || '/'} className="flex items-center gap-2">
+        <Link href={base || '/'} className="flex items-center gap-3">
           {store.logoUrl ? (
             <Image
               src={store.logoUrl}
               alt={store.name}
               width={40}
               height={40}
-              className="rounded-lg object-cover"
+              className="rounded-xl object-cover ring-1 ring-gray-100"
             />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-lg font-bold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 text-lg font-semibold text-white">
               {store.name.charAt(0)}
             </div>
           )}
           <span className="font-semibold text-gray-900">{store.name}</span>
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {store.whatsapp && (
             <a
               href={`https://wa.me/${store.whatsapp.replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+              className="rounded-xl p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
               aria-label="WhatsApp"
             >
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -55,13 +55,13 @@ export function StoreHeader({ store, storeSlug, onCartClick, linkBase }: StoreHe
             variant="outline"
             size="sm"
             onClick={onCartClick}
-            className="relative"
+            className="relative rounded-xl border-gray-200 hover:bg-gray-50 hover:border-gray-300"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             {itemCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gray-900 text-xs font-bold text-white">
                 {itemCount > 99 ? '99+' : itemCount}
               </span>
             )}

@@ -28,14 +28,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       window.sessionStorage.setItem(TRIAL_EXPIRED_STORAGE_KEY, '1');
       router.replace('/billing');
     };
+
     window.addEventListener('trialExpired', handler);
     return () => window.removeEventListener('trialExpired', handler);
   }, [pathname, user?.role, router]);
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-black border-t-transparent" />
       </div>
     );
   }
@@ -43,11 +44,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#f6f7f9]">
       <Sidebar userRole={user.role as Role} />
-      <div className="pl-64">
+
+      <div className="min-h-screen pl-72">
         <Topbar />
-        <main className="p-4">{children}</main>
+        <main className="p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );

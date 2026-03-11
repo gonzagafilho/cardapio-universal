@@ -16,12 +16,14 @@ export function ProductList({
 }: ProductListProps) {
   if (products.length === 0) {
     return (
-      <p className="py-8 text-center text-gray-500">{emptyMessage}</p>
+      <div className="rounded-2xl border border-gray-100 bg-white py-12 text-center shadow-card">
+        <p className="text-gray-500">{emptyMessage}</p>
+      </div>
     );
   }
 
   return (
-    <ul className="grid gap-3 sm:grid-cols-2">
+    <ul className="grid gap-4 sm:grid-cols-2">
       {products.map((product) => (
         <li key={product.id}>
           <ProductCard

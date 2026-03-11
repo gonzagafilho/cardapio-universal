@@ -41,19 +41,28 @@ export class PaymentsController {
   @Post('pix')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Gerar pagamento PIX' })
+  @ApiOperation({ summary: 'Gerar pagamento PIX (Mercado Pago)' })
   createPix(
     @TenantId() tenantId: string,
     @Body('establishmentId') establishmentId: string,
     @Body('orderId') orderId: string,
     @Body('amount') amount: number,
+    @Body('payerEmail') payerEmail?: string,
   ) {
     return this.paymentsService.createPix(
       tenantId,
       establishmentId,
       orderId,
       amount,
+      payerEmail ?? '',
     );
+  }
+
+  @Post('webhooks/mercadopago')
+  @Public()
+  @ApiOperation({ summary: 'Webhook Mercado Pago (notificações de pagamento PIX)' })
+  webhookMercadoPago(@Body() body: unknown) {
+    return this.paymentsService.webhook('mercadopago', body);
   }
 
   @Post('card')
@@ -76,12 +85,12 @@ export class PaymentsController {
 
   @Post('webhook')
   @Public()
-  @ApiOperation({ summary: 'Webhook de provedores de pagamento' })
+  @ApiOperation({ summary: 'Webhook genérico (provider no query)' })
   webhook(
     @Query('provider') provider: string,
     @Body() payload: unknown,
   ) {
-    return this.paymentsService.webhook(provider, payload);
+    return this.paymentsService.webhook(provider ?? '', payload);
   }
 
   @Get(':id/status')

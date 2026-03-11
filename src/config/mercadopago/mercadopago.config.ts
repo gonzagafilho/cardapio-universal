@@ -17,4 +17,6 @@ export default registerAs('mercadopago', () => ({
     pro: parseFloat(process.env.MERCADOPAGO_PLAN_AMOUNT_PRO ?? '79.90'),
     enterprise: parseFloat(process.env.MERCADOPAGO_PLAN_AMOUNT_ENTERPRISE ?? '199.90'),
   },
+  /** URL para notificações de pagamento (PIX, etc.). Ex.: https://api.xxx.com/api/payments/webhooks/mercadopago */
+  paymentNotificationUrl: process.env.MERCADOPAGO_PAYMENT_NOTIFICATION_URL ?? '',
 }));

@@ -1,3 +1,4 @@
+export * from './DomainNotFound';
 export * from './StoreHeader';
 export * from './StoreBanner';
 export * from './CategoryTabs';
@@ -7,7 +8,9 @@ export * from './ProductList';
 export * from './CartDrawer';
 export * from './CartSummary';
 export * from './CheckoutForm';
+export * from './CheckoutFormSimple';
 export * from './PaymentMethods';
 export * from './OrderTimeline';
 export * from './StoreFooter';
 export * from './CustomDomainStorePage';
+export * from './PixStep';

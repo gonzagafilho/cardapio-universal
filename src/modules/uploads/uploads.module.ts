@@ -6,6 +6,8 @@ import { randomUUID } from 'crypto';
 import { diskStorage } from 'multer';
 import { UploadsService } from './uploads.service';
 import { UploadsController } from './uploads.controller';
+import { IStorageAdapter, STORAGE_ADAPTER } from './interfaces/storage-adapter.interface';
+import { LocalStorageAdapter } from './adapters/local-storage.adapter';
 
 @Module({
   imports: [
@@ -26,7 +28,10 @@ import { UploadsController } from './uploads.controller';
     }),
   ],
   controllers: [UploadsController],
-  providers: [UploadsService],
+  providers: [
+    UploadsService,
+    { provide: STORAGE_ADAPTER, useClass: LocalStorageAdapter },
+  ],
   exports: [UploadsService],
 })
 export class UploadsModule {}

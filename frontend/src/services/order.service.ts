@@ -3,6 +3,7 @@ import type { Order } from '@/types/order';
 
 const ORDERS_PATH = '/orders';
 
+/** Contrato alinhado ao backend: POST /orders (CreateOrderDto). Requer cartId válido no banco e autenticação. */
 export interface CreateOrderDto {
   establishmentId: string;
   cartId: string;

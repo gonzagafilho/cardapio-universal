@@ -7,6 +7,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { SkipTrialCheck } from '../../common/decorators/skip-trial-check.decorator';
 
+/** Rotas login e onboarding são candidatas a rate limit (Throttler/Redis) quando houver mitigação de abuso. */
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {

@@ -23,28 +23,28 @@ export default function SuccessPage({ params }: PageProps) {
   if (loading) return <LoadingPage />;
   if (error || !store) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <p className="text-gray-600">Loja nao encontrada.</p>
+      <div className="flex min-h-screen items-center justify-center bg-white p-4">
+        <p className="text-gray-600">Loja não encontrada.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white">
       <StoreHeader store={store} storeSlug={storeSlug} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12">
-        <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white">
-            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="mx-auto max-w-md rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-card">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white">
+            <svg className="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Pedido realizado!</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Pedido realizado!</h1>
           <p className="mt-2 text-gray-600">
-            Seu pedido foi recebido e esta sendo processado.
+            Seu pedido foi recebido e está sendo processado.
           </p>
           {orderCode && (
-            <p className="mt-2 text-lg font-semibold text-primary">
+            <p className="mt-3 text-lg font-semibold text-primary">
               Pedido #{orderCode}
             </p>
           )}
@@ -53,14 +53,14 @@ export default function SuccessPage({ params }: PageProps) {
               Total: {formatCurrency(parseFloat(orderTotal))}
             </p>
           )}
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             {orderId && (
               <Link href={`/${storeSlug}/order/${orderId}`}>
-                <Button>Acompanhar pedido</Button>
+                <Button className="rounded-xl bg-gray-900 hover:bg-gray-800">Acompanhar pedido</Button>
               </Link>
             )}
             <Link href={`/${storeSlug}`}>
-              <Button variant="outline">Voltar ao cardapio</Button>
+              <Button variant="outline" className="rounded-xl border-gray-200">Voltar ao cardápio</Button>
             </Link>
           </div>
         </div>

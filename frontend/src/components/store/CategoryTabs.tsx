@@ -27,10 +27,10 @@ export function CategoryTabs({
         type="button"
         onClick={() => onSelect(null)}
         className={cn(
-          'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+          'shrink-0 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200',
           activeId === null
-            ? 'bg-primary text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-gray-900 text-white shadow-sm'
+            : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-gray-300 hover:text-gray-900'
         )}
       >
         Todos
@@ -41,10 +41,10 @@ export function CategoryTabs({
           type="button"
           onClick={() => onSelect(cat.id)}
           className={cn(
-            'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            'shrink-0 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200',
             activeId === cat.id
-              ? 'bg-primary text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-gray-900 text-white shadow-sm'
+              : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-gray-300 hover:text-gray-900'
           )}
         >
           {cat.name}

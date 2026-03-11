@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
-import { useCartStore } from '@/stores/cart.store';
+import { useCart } from '@/hooks/useCart';
 import {
   StoreHeader,
   StoreBanner,
@@ -13,7 +13,7 @@ import {
   StoreFooter,
 } from '@/components/store';
 import { LoadingPage } from '@/components/ui/loading';
-import { EmptyState } from '@/components/ui/empty-state';
+import { DomainNotFound } from '@/components/store/DomainNotFound';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
 import type { Product } from '@/types/product';
@@ -26,7 +26,7 @@ export function CustomDomainStorePage({ host }: { host: string }) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
-  const setStore = useCartStore((s) => s.setStore);
+  const { setStore } = useCart();
   if (store) {
     setStore(store.slug, store.id);
   }
@@ -55,12 +55,11 @@ export function CustomDomainStorePage({ host }: { host: string }) {
   if (loading) return <LoadingPage />;
   if (error || !store) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <EmptyState
-          title="Loja não encontrada"
-          description={error ?? 'Verifique o link e tente novamente.'}
-        />
-      </div>
+      <DomainNotFound
+        host={host || undefined}
+        title="Domínio não encontrado"
+        description={error ?? 'Este endereço não está vinculado a nenhum cardápio. Verifique o link ou acesse o site principal.'}
+      />
     );
   }
 

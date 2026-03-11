@@ -3,19 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #0f766e;
-  --color-secondary: #134e4a;
-  --color-accent: #14b8a6;
+  --color-primary: #111111;
+  --color-secondary: #1f1f1f;
+  --color-accent: #4b5563;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8f8f8;
+  --color-border: #e5e7eb;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-card-hover: 0 10px 30px 0 rgb(0 0 0 / 0.08);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  @apply bg-white text-gray-900 antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-/* scrollbar thin for category tabs */
 .scrollbar-thin::-webkit-scrollbar {
   height: 4px;
 }
+
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-gray-300;
+  @apply rounded-full bg-gray-200;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }

@@ -34,8 +34,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? message
         : { message, statusCode: status };
 
+    const req = request as Request & { requestId?: string; user?: { tenantId?: string } };
+    const meta = [req.requestId && `requestId=${req.requestId}`, req.user?.tenantId && `tenantId=${req.user.tenantId}`]
+      .filter(Boolean)
+      .join(' ');
     this.logger.error(
-      `${request.method} ${request.url} ${status}`,
+      `${request.method} ${request.url} ${status}${meta ? ` ${meta}` : ''}`,
       exception instanceof Error ? exception.stack : undefined,
     );
 

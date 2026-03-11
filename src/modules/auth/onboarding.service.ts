@@ -1,7 +1,9 @@
 import {
   Injectable,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { Role, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -11,19 +13,44 @@ import { OnboardingDto } from './dto/onboarding.dto';
 /** Duração do trial para novos tenants (dias). */
 const DEFAULT_TRIAL_DAYS = 7;
 
+/** Slug válido: apenas letras minúsculas, números e hífens; mínimo 2 caracteres. */
+const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Categorias padrão criadas no primeiro estabelecimento. */
+const DEFAULT_CATEGORIES = [
+  { name: 'Mais pedidos', sortOrder: 0 },
+  { name: 'Combos', sortOrder: 1 },
+  { name: 'Lanches', sortOrder: 2 },
+  { name: 'Bebidas', sortOrder: 3 },
+  { name: 'Sobremesas', sortOrder: 4 },
+];
+
+function normalizeSlug(value: string): string {
+  return value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
 @Injectable()
 export class OnboardingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    private readonly config: ConfigService,
   ) {}
 
   async register(dto: OnboardingDto): Promise<AuthResponse> {
-    const tenantSlug = dto.companySlug.toLowerCase().trim().replace(/\s+/g, '-');
-    const storeSlug = (dto.storeSlug ?? dto.storeName)
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '-');
+    const tenantSlug = normalizeSlug(dto.companySlug);
+    const storeSlug = normalizeSlug(dto.storeSlug ?? dto.storeName);
+
+    if (!SLUG_REGEX.test(tenantSlug) || tenantSlug.length < 2) {
+      throw new BadRequestException(
+        'Slug da empresa inválido. Use apenas letras, números e hífens (mín. 2 caracteres).',
+      );
+    }
+    if (!SLUG_REGEX.test(storeSlug) || storeSlug.length < 2) {
+      throw new BadRequestException(
+        'Slug do estabelecimento inválido. Use apenas letras, números e hífens (mín. 2 caracteres).',
+      );
+    }
 
     const existingTenant = await this.prisma.tenant.findUnique({
       where: { slug: tenantSlug },
@@ -32,7 +59,7 @@ export class OnboardingService {
       throw new ConflictException('Este slug de empresa já está em uso');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: {
           name: dto.companyName.trim(),
@@ -55,7 +82,7 @@ export class OnboardingService {
       });
 
       const passwordHash = await bcrypt.hash(dto.password, 10);
-      const user = await tx.user.create({
+      await tx.user.create({
         data: {
           tenantId: tenant.id,
           establishmentId: establishment.id,
@@ -91,10 +118,40 @@ export class OnboardingService {
         },
       });
 
-      return this.authService.login(
-        { email: dto.email.trim().toLowerCase(), password: dto.password },
-        tenant.id,
-      );
+      for (const cat of DEFAULT_CATEGORIES) {
+        await tx.category.create({
+          data: {
+            tenantId: tenant.id,
+            establishmentId: establishment.id,
+            name: cat.name,
+            sortOrder: cat.sortOrder,
+            isActive: true,
+          },
+        });
+      }
     });
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+      select: { id: true },
+    });
+    if (!tenant) {
+      throw new ConflictException('Falha ao concluir cadastro. Tente fazer login.');
+    }
+
+    const authResponse = await this.authService.login(
+      { email: dto.email.trim().toLowerCase(), password: dto.password },
+      tenant.id,
+    );
+
+    const baseUrl = this.config.get<string>('APP_PUBLIC_URL') ?? '';
+    const publicCardUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, '')}/${storeSlug}`
+      : `/${storeSlug}`;
+
+    return {
+      ...authResponse,
+      publicCardUrl,
+    };
   }
 }

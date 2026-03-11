@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { useStoreData } from '@/hooks/useStoreData';
-import { useCartStore } from '@/stores/cart.store';
+import { useCart } from '@/hooks/useCart';
 import {
   StoreHeader,
   StoreBanner,
@@ -31,7 +31,7 @@ export default function StorePage({ params }: PageProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
 
-  const setStore = useCartStore((s) => s.setStore);
+  const { setStore } = useCart();
   if (store) {
     setStore(storeSlug, store.id);
   }

@@ -1,34 +1,37 @@
 import { apiPost, apiGet } from './api';
 
-const PAYMENTS_PATH = '/payments';
-
-export async function createPaymentIntent(
-  establishmentId: string,
-  orderId: string,
-  amount: number,
-  method: string
-): Promise<{ paymentId: string; clientSecret: string | null }> {
-  return apiPost<{ paymentId: string; clientSecret: string | null }>(
-    `${PAYMENTS_PATH}/create-intent`,
-    { establishmentId, orderId, amount, method }
-  );
+export interface CreatePixResponse {
+  paymentId: string;
+  mpPaymentId: string | null;
+  status: string;
+  qrCodeBase64: string | null;
+  qrCode: string | null;
+  expiresAt?: string | null;
 }
 
-export async function createPixPayment(
-  establishmentId: string,
-  orderId: string,
-  amount: number
-): Promise<{ paymentId: string; qrCode?: string }> {
-  return apiPost<{ paymentId: string; qrCode?: string }>(
-    `${PAYMENTS_PATH}/pix`,
-    { establishmentId, orderId, amount }
-  );
+export interface PaymentStatusResponse {
+  id: string;
+  status: string;
+  amount: number;
+  paidAt: string | null;
+  orderId: string;
+  orderPaymentStatus?: string;
 }
 
-export async function getPaymentStatus(
-  paymentId: string
-): Promise<{ status: string; amount: number; paidAt?: string }> {
-  return apiGet<{ status: string; amount: number; paidAt?: string }>(
-    `${PAYMENTS_PATH}/${paymentId}/status`
-  );
+export async function createPix(params: {
+  establishmentId: string;
+  orderId: string;
+  amount: number;
+  payerEmail?: string;
+}): Promise<CreatePixResponse> {
+  return apiPost<CreatePixResponse>('/payments/pix', {
+    establishmentId: params.establishmentId,
+    orderId: params.orderId,
+    amount: params.amount,
+    payerEmail: params.payerEmail ?? '',
+  });
+}
+
+export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
+  return apiGet<PaymentStatusResponse>(`/payments/${paymentId}/status`);
 }

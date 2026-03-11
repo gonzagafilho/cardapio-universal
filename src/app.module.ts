@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +28,7 @@ import { TrialGuard } from './common/guards/trial.guard';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 import databaseConfig from './config/database/database.config';
 import authConfig from './config/auth/auth.config';
 import mercadopagoConfig from './config/mercadopago/mercadopago.config';
@@ -69,4 +70,8 @@ import mercadopagoConfig from './config/mercadopago/mercadopago.config';
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(requestIdMiddleware).forRoutes('*');
+  }
+}

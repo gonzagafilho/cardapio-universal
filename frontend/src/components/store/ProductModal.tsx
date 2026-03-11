@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/currency';
-import { useCartStore } from '@/stores/cart.store';
+import { useCart } from '@/hooks/useCart';
 import type { Product, ProductOptionGroup, ProductOptionItem } from '@/types/product';
 import type { SelectedOption } from '@/types/cart';
 
@@ -28,8 +28,7 @@ export function ProductModal({
   const [notes, setNotes] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
 
-  const addItem = useCartStore((s) => s.addItem);
-  const setStore = useCartStore((s) => s.setStore);
+  const { addItem, setStore } = useCart();
 
   const unitPrice = product
     ? Number(product.promotionalPrice ?? product.price)

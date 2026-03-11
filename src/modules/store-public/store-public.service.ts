@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Weekday } from '@prisma/client';
@@ -51,14 +52,37 @@ function normalizeHost(host: string): string {
   return host.split(':')[0].toLowerCase().trim();
 }
 
+/**
+ * Extrai slug do subdomínio quando host é do tipo subdomain.baseDomain.
+ * Ex.: empresa.cardapio.app + baseDomain cardapio.app → empresa.
+ */
+function extractSubdomainSlug(host: string, baseDomain: string): string | null {
+  const base = baseDomain.toLowerCase().trim();
+  if (!base || !host) return null;
+  const h = normalizeHost(host);
+  if (h === base) return null;
+  const suffix = `.${base}`;
+  if (!h.endsWith(suffix)) return null;
+  const sub = h.slice(0, -suffix.length);
+  return sub && !sub.includes('.') ? sub : null;
+}
+
+/**
+ * API pública do cardápio (por host/slug). Candidato a cache por tenant/slug quando houver
+ * Redis: getStoreByHost, getStoreBySlug, getCategories, getProducts, getSettings (chave ex.: store:${slug}, TTL curto).
+ */
 @Injectable()
 export class StorePublicService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   /**
-   * Helper central: resolve o estabelecimento por requestHost (domínio custom) ou slug.
+   * Helper central: resolve o estabelecimento por requestHost (domínio custom ou subdomínio) ou slug.
    * 1) Se requestHost corresponder a um customDomain → retorna esse estabelecimento.
-   * 2) Caso contrário → fallback para slug.
+   * 2) Se requestHost for subdomínio do domínio base (ex. empresa.cardapio.app) → busca por slug do subdomínio.
+   * 3) Caso contrário → fallback para slug.
    */
   async resolveStore(requestHost?: string, slug?: string) {
     if (requestHost) {
@@ -69,14 +93,31 @@ export class StorePublicService {
     throw new NotFoundException('Loja não encontrada');
   }
 
+  /**
+   * Resolve loja por host:
+   * 1) Domínio personalizado (Establishment.customDomain = host).
+   * 2) Subdomínio do domínio base (ex. empresa.cardapio.app → slug "empresa" → Establishment.slug).
+   */
   async getStoreByHost(host: string) {
     const normalized = normalizeHost(host);
     if (!normalized) return null;
-    const establishment = await this.prisma.establishment.findFirst({
+
+    const byCustomDomain = await this.prisma.establishment.findFirst({
       where: { customDomain: normalized, isActive: true },
       include: { tenant: { select: { name: true, primaryColor: true, secondaryColor: true } } },
     });
-    return establishment;
+    if (byCustomDomain) return byCustomDomain;
+
+    const baseDomain = this.config.get<string>('SUBDOMAIN_BASE_DOMAIN') ?? '';
+    const slug = extractSubdomainSlug(normalized, baseDomain);
+    if (slug) {
+      try {
+        return await this.getStoreBySlug(slug);
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 
   async getStoreBySlug(slug: string) {

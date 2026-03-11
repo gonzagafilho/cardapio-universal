@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
-import { StoreHeader, StoreFooter } from '@/components/store';
+import { StoreHeader, StoreFooter, DomainNotFound } from '@/components/store';
 import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
 import { formatCurrency } from '@/lib/currency';
@@ -18,13 +18,7 @@ export function CustomDomainSuccessPage({ host }: { host: string }) {
   const { store, loading, error } = useStoreDataByHost(host);
 
   if (loading) return <LoadingPage />;
-  if (error || !store) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <p className="text-gray-600">Loja não encontrada.</p>
-      </div>
-    );
-  }
+  if (error || !store) return <DomainNotFound host={host} description={error ?? undefined} />;
 
   return (
     <div className="min-h-screen flex flex-col">

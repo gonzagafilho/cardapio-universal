@@ -1,22 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Inject, Injectable } from '@nestjs/common';
+import { IStorageAdapter } from './interfaces/storage-adapter.interface';
+import { STORAGE_ADAPTER } from './interfaces/storage-adapter.interface';
 
 @Injectable()
 export class UploadsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(STORAGE_ADAPTER) private readonly storage: IStorageAdapter,
+  ) {}
 
   async saveImage(
     tenantId: string,
     establishmentId: string,
     file: Express.Multer.File,
   ) {
-    // Placeholder: em produção salvar em storage (S3, GCS) e retornar URL
-    const url = `/uploads/${tenantId}/${establishmentId}/${file.filename ?? file.originalname}`;
-    return { url, filename: file.filename ?? file.originalname };
+    return this.storage.saveImage(tenantId, establishmentId, file);
   }
 
   async deleteImage(tenantId: string, id: string) {
-    // Placeholder: remover arquivo do storage
-    return { message: 'Imagem removida', id };
+    return this.storage.deleteImage(tenantId, id);
   }
 }

@@ -22,10 +22,12 @@ export interface AuthTokens {
   expiresIn: number;
 }
 
-/** Resposta do backend POST /auth/login (pode incluir ok e accessToken no root) */
+/** Resposta do backend POST /auth/login e POST /auth/onboarding (pode incluir ok e accessToken no root). Onboarding retorna ainda publicCardUrl. */
 export interface AuthResponse {
   user: UserSession;
   tokens: AuthTokens;
   ok?: boolean;
   accessToken?: string;
+  /** Link do cardápio público (retornado apenas no onboarding). */
+  publicCardUrl?: string;
 }

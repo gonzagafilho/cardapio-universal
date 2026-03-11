@@ -11,7 +11,7 @@ export function StoreBanner({ store }: StoreBannerProps) {
   if (!store.bannerUrl) return null;
 
   return (
-    <div className="relative h-40 w-full overflow-hidden bg-gray-200 md:h-52">
+    <div className="relative h-40 w-full overflow-hidden bg-gray-100 md:h-52">
       <Image
         src={store.bannerUrl}
         alt={`Banner ${store.name}`}
