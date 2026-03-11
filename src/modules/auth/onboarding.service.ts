@@ -3,10 +3,13 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { Role } from '@prisma/client';
+import { Role, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService, AuthResponse } from './auth.service';
 import { OnboardingDto } from './dto/onboarding.dto';
+
+/** Duração do trial para novos tenants (dias). */
+const DEFAULT_TRIAL_DAYS = 7;
 
 @Injectable()
 export class OnboardingService {
@@ -72,6 +75,19 @@ export class OnboardingService {
           acceptsPickup: true,
           acceptsDineIn: true,
           currency: 'BRL',
+        },
+      });
+
+      const trialStartsAt = new Date();
+      const trialEndsAt = new Date(trialStartsAt);
+      trialEndsAt.setDate(trialEndsAt.getDate() + DEFAULT_TRIAL_DAYS);
+      await tx.subscription.create({
+        data: {
+          tenantId: tenant.id,
+          plan: tenant.plan,
+          status: SubscriptionStatus.trialing,
+          trialStartsAt,
+          trialEndsAt,
         },
       });
 

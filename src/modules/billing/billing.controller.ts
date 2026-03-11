@@ -6,12 +6,19 @@ import {
   Body,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { ChangePlanDto } from './dto/change-plan.dto';
+import { CheckoutSubscriptionDto } from './dto/checkout.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantId } from '../../common/decorators/tenant.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { SkipTrialCheck } from '../../common/decorators/skip-trial-check.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { JwtPayload } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('billing')
 @Controller('billing')
@@ -21,9 +28,41 @@ export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
   @Get('subscription')
+  @SkipTrialCheck()
   @ApiOperation({ summary: 'Ver assinatura atual do tenant' })
   getSubscription(@TenantId() tenantId: string) {
     return this.billingService.getSubscription(tenantId);
+  }
+
+  @Post('subscription/checkout')
+  @SkipTrialCheck()
+  @ApiOperation({ summary: 'Obter URL de checkout Mercado Pago para o plano' })
+  async createCheckout(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CheckoutSubscriptionDto,
+  ) {
+    const result = await this.billingService.createCheckoutSubscription(
+      tenantId,
+      dto.plan,
+      user.email,
+    );
+    if (!result) {
+      return { checkoutUrl: null, message: 'Checkout com Mercado Pago não configurado' };
+    }
+    return result;
+  }
+
+  @Post('webhooks/mercadopago')
+  @Public()
+  @ApiOperation({ summary: 'Webhook Mercado Pago (assinaturas)' })
+  async webhookMercadoPago(@Body() body: unknown, @Req() req: Request) {
+    const xSignature = req.headers['x-signature'] as string | undefined;
+    await this.billingService.processMercadoPagoWebhook(
+      body as { type?: string; data?: { id?: string } },
+      xSignature,
+    );
+    return { received: true };
   }
 
   @Patch('subscription/plan')

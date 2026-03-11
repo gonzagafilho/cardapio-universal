@@ -5,6 +5,7 @@ import { OnboardingService } from './onboarding.service';
 import { LoginDto, RefreshTokenDto, OnboardingDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { SkipTrialCheck } from '../../common/decorators/skip-trial-check.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -47,6 +48,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @SkipTrialCheck()
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Usuário autenticado' })
   async me(@CurrentUser('sub') userId: string) {

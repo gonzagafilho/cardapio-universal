@@ -24,17 +24,19 @@ import { StorePublicModule } from './modules/store-public/store-public.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { TrialGuard } from './common/guards/trial.guard';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import databaseConfig from './config/database/database.config';
 import authConfig from './config/auth/auth.config';
+import mercadopagoConfig from './config/mercadopago/mercadopago.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, authConfig],
+      load: [databaseConfig, authConfig, mercadopagoConfig],
     }),
     PrismaModule,
     AuthModule,
@@ -61,6 +63,7 @@ import authConfig from './config/auth/auth.config';
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: TrialGuard },
     { provide: APP_PIPE, useClass: ValidationPipe },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },

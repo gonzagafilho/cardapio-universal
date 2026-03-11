@@ -13,6 +13,10 @@ dist/
 .env.*.local
 .env.production
 .env.production.local
+.env.bak
+.env.bak-*
+# Backups (do not commit)
+backups/
 # Logs and temp
 *.log
 npm-debug.log*

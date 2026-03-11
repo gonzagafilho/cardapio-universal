@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   getSubscription,
   changePlan,
+  getCheckoutUrl,
   cancelSubscription,
   reactivateSubscription,
   getInvoices,
@@ -16,6 +17,8 @@ import { Badge } from '@/components/ui/badge';
 import { AccessDenied } from '@/components/auth/AccessDenied';
 import { canAccessBilling } from '@/lib/permissions';
 import type { SubscriptionView, InvoiceView } from '@/types/billing';
+
+const TRIAL_EXPIRED_STORAGE_KEY = 'trialExpired';
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—';
@@ -57,6 +60,7 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<InvoiceView[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showTrialExpiredBanner, setShowTrialExpiredBanner] = useState(false);
 
   const canView = user ? canAccessBilling(user.role) : false;
 
@@ -67,6 +71,11 @@ export default function BillingPage() {
       .then(([sub, inv]) => {
         setSubscription(sub ?? null);
         setInvoices(Array.isArray(inv) ? inv : []);
+        if (sub?.status === 'active' && typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(TRIAL_EXPIRED_STORAGE_KEY);
+          setShowTrialExpiredBanner(false);
+        }
+        if (sub?.isTrialExpired === true) setShowTrialExpiredBanner(true);
       })
       .catch(() => {
         setSubscription(null);
@@ -83,12 +92,26 @@ export default function BillingPage() {
     load();
   }, [user, canView]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setShowTrialExpiredBanner(window.sessionStorage.getItem(TRIAL_EXPIRED_STORAGE_KEY) === '1');
+  }, []);
+
   const handleChangePlan = async (plan: PlanKey) => {
-    if (!subscription || subscription.plan === plan) return;
+    if (subscription?.plan === plan) return;
     setActionLoading(true);
     try {
+      const checkout = await getCheckoutUrl(plan);
+      if (checkout.checkoutUrl) {
+        window.location.href = checkout.checkoutUrl;
+        return;
+      }
       const updated = await changePlan(plan);
       setSubscription(updated);
+      if (updated.status === 'active' && typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(TRIAL_EXPIRED_STORAGE_KEY);
+        setShowTrialExpiredBanner(false);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -125,10 +148,115 @@ export default function BillingPage() {
   const limits = subscription ? getPlanLimits(subscription.plan) : null;
   const isActive = subscription?.status === 'active' && !subscription?.cancelAtPeriodEnd;
   const isCancelled = subscription?.status === 'cancelled' || subscription?.cancelAtPeriodEnd;
+  const showTrialExpiredAlert =
+    showTrialExpiredBanner || subscription?.isTrialExpired === true;
+  const showTrialActiveMessage =
+    subscription?.isTrialActive === true &&
+    subscription?.daysLeftInTrial != null;
+  const currentPlanKey = (subscription?.plan ?? 'basic').toLowerCase() as PlanKey;
+  const planOrder: PlanKey[] = ['basic', 'pro', 'enterprise'];
+  const currentPlanIndex = planOrder.indexOf(currentPlanKey);
 
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Assinatura e cobrança</h1>
+
+      {showTrialActiveMessage && (
+        <div
+          className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900"
+          role="status"
+        >
+          <p className="font-medium">
+            Seu teste termina em {subscription.daysLeftInTrial}{' '}
+            {subscription.daysLeftInTrial === 1 ? 'dia' : 'dias'}.
+          </p>
+          {subscription.trialEndsAt && (
+            <p className="mt-1 text-sm">
+              Data de término: {formatDate(subscription.trialEndsAt)}
+            </p>
+          )}
+          <p className="mt-2 text-sm font-medium">
+            Faça upgrade antes do vencimento para continuar sem interrupções.
+          </p>
+        </div>
+      )}
+
+      {showTrialExpiredAlert && (
+        <div
+          className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 text-amber-900"
+          role="alert"
+        >
+          <p className="font-semibold">Seu período de teste expirou.</p>
+          <p className="mt-1 text-sm">
+            Escolha um plano abaixo para continuar usando o sistema.
+          </p>
+          <p className="mt-2 text-sm font-medium">
+            Selecione um plano e clique em &quot;Escolher plano&quot; para continuar.
+          </p>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Planos disponíveis</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          {showTrialExpiredAlert
+            ? 'Selecione um plano para continuar.'
+            : showTrialActiveMessage
+              ? 'Você pode fazer upgrade a qualquer momento.'
+              : 'Altere seu plano quando precisar.'}
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {PLAN_OPTIONS.map((option) => {
+            const limitsForPlan = getPlanLimits(option.value);
+            const isCurrent = currentPlanKey === option.value;
+            const isUpgrade =
+              planOrder.indexOf(option.value) > currentPlanIndex;
+            return (
+              <div
+                key={option.value}
+                className={`rounded-lg border-2 p-4 ${
+                  isCurrent
+                    ? 'border-primary bg-primary/5'
+                    : showTrialExpiredAlert
+                      ? 'border-gray-200 bg-white'
+                      : 'border-gray-200 bg-gray-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-900">{option.label}</span>
+                  {isCurrent && (
+                    <Badge variant="success" className="text-xs">
+                      Plano atual
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-gray-600">
+                  {limitsForPlan.establishments}{' '}
+                  {limitsForPlan.establishments === 1 ? 'estabelecimento' : 'estabelecimentos'},{' '}
+                  {limitsForPlan.users} usuários
+                </p>
+                <div className="mt-4">
+                  {isCurrent ? (
+                    <Button variant="outline" size="sm" disabled className="w-full">
+                      Plano atual
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={showTrialExpiredAlert || isUpgrade ? 'primary' : 'outline'}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleChangePlan(option.value)}
+                      loading={actionLoading}
+                    >
+                      {isUpgrade ? 'Fazer upgrade' : 'Escolher plano'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900">Assinatura atual</h2>
@@ -166,6 +294,12 @@ export default function BillingPage() {
                 <dt className="text-sm text-gray-500">Próximo ciclo</dt>
                 <dd className="text-gray-900">{formatDate(subscription.currentPeriodEnd)}</dd>
               </div>
+              {subscription.status === 'trialing' && subscription.trialEndsAt && (
+                <div>
+                  <dt className="text-sm text-gray-500">Fim do trial</dt>
+                  <dd className="text-gray-900">{formatDate(subscription.trialEndsAt)}</dd>
+                </div>
+              )}
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
               {isActive && (

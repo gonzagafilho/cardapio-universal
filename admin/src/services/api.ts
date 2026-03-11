@@ -3,6 +3,7 @@ import { API_BASE_URL, TOKEN_KEY } from '@/lib/constants';
 export interface ApiError {
   message: string;
   statusCode?: number;
+  code?: string;
   errors?: Record<string, unknown>;
 }
 
@@ -14,11 +15,18 @@ function getToken(): string | null {
 async function handleResponse<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const code = (data as { code?: string }).code;
     const err: ApiError = {
       message: (data as { message?: string }).message ?? 'Erro na requisição',
       statusCode: res.status,
+      code,
       errors: (data as { errors?: Record<string, unknown> }).errors,
     };
+    // TRIAL_EXPIRED is not logout: do not clear token/user or redirect to /login.
+    // Only notify layout to redirect to /billing; session stays valid.
+    if (res.status === 403 && code === 'TRIAL_EXPIRED' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('trialExpired'));
+    }
     throw err;
   }
   return (data as { data?: T }).data ?? (data as T);

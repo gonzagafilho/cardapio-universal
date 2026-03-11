@@ -1,8 +1,17 @@
 import { apiGet, apiPatch, apiPost } from './api';
 import type { SubscriptionView, InvoiceView } from '@/types/billing';
 
+export interface CheckoutSubscriptionResponse {
+  checkoutUrl: string | null;
+  message?: string;
+}
+
 export async function getSubscription(): Promise<SubscriptionView | null> {
   return apiGet<SubscriptionView | null>('/billing/subscription');
+}
+
+export async function getCheckoutUrl(plan: string): Promise<CheckoutSubscriptionResponse> {
+  return apiPost<CheckoutSubscriptionResponse>('/billing/subscription/checkout', { plan });
 }
 
 export async function changePlan(plan: string): Promise<SubscriptionView> {

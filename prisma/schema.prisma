@@ -16,10 +16,10 @@ datasource db {
 // =============================================================================
 
 enum Role {
-  SUPER_ADMIN   // administrador da plataforma
-  TENANT_OWNER  // dono do tenant/empresa
-  TENANT_ADMIN  // admin do tenant
-  TENANT_STAFF  // equipe do tenant
+  SUPER_ADMIN // administrador da plataforma
+  TENANT_OWNER // dono do tenant/empresa
+  TENANT_ADMIN // admin do tenant
+  TENANT_STAFF // equipe do tenant
 }
 
 enum OrderType {
@@ -89,21 +89,21 @@ enum InvoiceStatus {
 // TENANT (empresa dona do sistema / multi-tenant)
 // =============================================================================
 model Tenant {
-  id           String    @id @default(cuid())
-  name         String
-  slug         String    @unique
-  document     String?   // CPF ou CNPJ
-  phone        String?
-  email        String?
-  logoUrl      String?
-  primaryColor String?
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  document       String? // CPF ou CNPJ
+  phone          String?
+  email          String?
+  logoUrl        String?
+  primaryColor   String?
   secondaryColor String?
-  isActive     Boolean   @default(true)
-  plan         String    @default("basic") // basic, pro, enterprise
-  status       String    @default("active") // active, suspended, cancelled
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  isActive       Boolean   @default(true)
+  plan           String    @default("basic") // basic, pro, enterprise
+  status         String    @default("active") // active, suspended, cancelled
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   establishments       Establishment[]
   users                User[]
@@ -119,13 +119,13 @@ model Tenant {
   orderItemOptions     OrderItemOption[]
   payments             Payment[]
   coupons              Coupon[]
-  deliveryZones         DeliveryZone[]
+  deliveryZones        DeliveryZone[]
   storeSettings        StoreSettings[]
   banners              Banner[]
   workingHours         EstablishmentWorkingHours[]
   tables               Table[]
   auditLogs            AuditLog[]
-  subscriptions       Subscription[]
+  subscriptions        Subscription[]
   subscriptionInvoices SubscriptionInvoice[]
   billingEvents        BillingEvent[]
 
@@ -151,8 +151,8 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  establishment  Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment   Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
   establishmentId String?
   auditLogs       AuditLog[]
 
@@ -191,20 +191,20 @@ model Establishment {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenant          Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users           User[]
-  categories      Category[]
-  products        Product[]
-  optionalGroups  OptionalGroup[]
-  carts           Cart[]
-  orders          Order[]
-  payments        Payment[]
-  coupons         Coupon[]
-  deliveryZones   DeliveryZone[]
-  storeSettings   StoreSettings[]
-  banners         Banner[]
-  workingHours    EstablishmentWorkingHours[]
-  tables          Table[]
+  tenant         Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users          User[]
+  categories     Category[]
+  products       Product[]
+  optionalGroups OptionalGroup[]
+  carts          Cart[]
+  orders         Order[]
+  payments       Payment[]
+  coupons        Coupon[]
+  deliveryZones  DeliveryZone[]
+  storeSettings  StoreSettings[]
+  banners        Banner[]
+  workingHours   EstablishmentWorkingHours[]
+  tables         Table[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -216,20 +216,20 @@ model Establishment {
 // CATEGORY (categoria de produtos por estabelecimento)
 // =============================================================================
 model Category {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   tenantId        String
   establishmentId String
   name            String
   description     String?
-  sortOrder       Int      @default(0)
-  isActive        Boolean  @default(true)
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
   deletedAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  products     Product[]
+  products      Product[]
 
   @@index([tenantId])
   @@index([establishmentId])
@@ -242,7 +242,7 @@ model Category {
 // Opcionais: via relação N:N com OptionalGroup (ProductOptionalGroup).
 // =============================================================================
 model Product {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   tenantId        String
   establishmentId String
   categoryId      String
@@ -250,20 +250,20 @@ model Product {
   slug            String
   description     String?
   imageUrl        String?
-  price           Decimal  @db.Decimal(10, 2)
-  compareAtPrice  Decimal? @db.Decimal(10, 2)
+  price           Decimal   @db.Decimal(10, 2)
+  compareAtPrice  Decimal?  @db.Decimal(10, 2)
   sku             String?
-  isFeatured      Boolean  @default(false)
-  isActive        Boolean  @default(true)
-  isAvailable     Boolean  @default(true) // false = esgotado agora (ainda no cardápio)
-  sortOrder       Int      @default(0)
+  isFeatured      Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  isAvailable     Boolean   @default(true) // false = esgotado agora (ainda no cardápio)
+  sortOrder       Int       @default(0)
   deletedAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  establishment  Establishment       @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  category       Category            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment  Establishment          @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  category       Category               @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   optionalGroups ProductOptionalGroup[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
@@ -293,10 +293,10 @@ model OptionalGroup {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  items     OptionalItem[]
-  products  ProductOptionalGroup[]
+  tenant        Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment          @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  items         OptionalItem[]
+  products      ProductOptionalGroup[]
 
   @@index([tenantId])
   @@index([establishmentId])
@@ -312,14 +312,14 @@ model OptionalItem {
   optionalGroupId String
   name            String
   description     String?
-  price           Decimal  @db.Decimal(10, 2) @default(0)
+  price           Decimal  @default(0) @db.Decimal(10, 2)
   sortOrder       Int      @default(0)
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant   Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  group    OptionalGroup @relation(fields: [optionalGroupId], references: [id], onDelete: Cascade)
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  group  OptionalGroup @relation(fields: [optionalGroupId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([optionalGroupId])
@@ -347,14 +347,14 @@ model EstablishmentWorkingHours {
   id              String   @id @default(cuid())
   tenantId        String
   establishmentId String
-  weekday        Weekday
-  openTime       String?   // "09:00"
-  closeTime      String?   // "22:00"
-  isClosed       Boolean   @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  weekday         Weekday
+  openTime        String? // "09:00"
+  closeTime       String? // "22:00"
+  isClosed        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
 
   @@unique([establishmentId, weekday])
@@ -366,20 +366,20 @@ model EstablishmentWorkingHours {
 // STORE SETTINGS (configuração por estabelecimento - 1:1 implícito)
 // =============================================================================
 model StoreSettings {
-  id                        String   @id @default(cuid())
-  tenantId                  String
-  establishmentId          String
-  deliveryFee                   Decimal? @db.Decimal(10, 2)
-  minimumOrderAmount            Decimal? @db.Decimal(10, 2)
-  minimumOrderAmountDelivery    Decimal? @db.Decimal(10, 2) // mínimo só para entrega
-  estimatedDeliveryTimeMin Int?     // minutos
-  estimatedDeliveryTimeMax Int?     // minutos
-  acceptsPickup             Boolean  @default(true)
-  acceptsDelivery           Boolean  @default(true)
-  acceptsDineIn             Boolean  @default(true)
-  currency                  String   @default("BRL")
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                         String   @id @default(cuid())
+  tenantId                   String
+  establishmentId            String
+  deliveryFee                Decimal? @db.Decimal(10, 2)
+  minimumOrderAmount         Decimal? @db.Decimal(10, 2)
+  minimumOrderAmountDelivery Decimal? @db.Decimal(10, 2) // mínimo só para entrega
+  estimatedDeliveryTimeMin   Int? // minutos
+  estimatedDeliveryTimeMax   Int? // minutos
+  acceptsPickup              Boolean  @default(true)
+  acceptsDelivery            Boolean  @default(true)
+  acceptsDineIn              Boolean  @default(true)
+  currency                   String   @default("BRL")
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
@@ -402,12 +402,12 @@ model Banner {
   linkUrl         String?
   sortOrder       Int       @default(0)
   isActive        Boolean   @default(true)
-  startsAt       DateTime?
-  endsAt         DateTime?
+  startsAt        DateTime?
+  endsAt          DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -423,7 +423,7 @@ model Banner {
 model Coupon {
   id               String       @id @default(cuid())
   tenantId         String
-  establishmentId  String?      // null = cupom do tenant (todos os estabelecimentos)
+  establishmentId  String? // null = cupom do tenant (todos os estabelecimentos)
   code             String
   description      String?
   discountType     DiscountType
@@ -436,7 +436,7 @@ model Coupon {
   endsAt           DateTime?
   isActive         Boolean      @default(true)
   createdAt        DateTime     @default(now())
-  updatedAt        DateTime    @updatedAt
+  updatedAt        DateTime     @updatedAt
 
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
@@ -454,19 +454,19 @@ model Coupon {
 // Um cliente pode fazer pedidos em qualquer estabelecimento do tenant.
 // =============================================================================
 model Customer {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   tenantId  String
   name      String
   phone     String
   email     String?
   deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   addresses CustomerAddress[]
-  carts    Cart[]
-  orders   Order[]
+  carts     Cart[]
+  orders    Order[]
 
   @@index([tenantId])
   @@index([phone])
@@ -477,23 +477,23 @@ model Customer {
 // CUSTOMER ADDRESS (endereço de entrega do cliente)
 // =============================================================================
 model CustomerAddress {
-  id          String   @id @default(cuid())
-  tenantId    String
-  customerId  String
-  label       String?  // Casa, Trabalho
-  addressLine String
+  id            String   @id @default(cuid())
+  tenantId      String
+  customerId    String
+  label         String? // Casa, Trabalho
+  addressLine   String
   addressNumber String?
-  complement  String?
-  neighborhood String?
-  city        String?
-  state       String?
-  zipCode     String?
-  reference   String?
-  latitude    Decimal? @db.Decimal(10, 7)
-  longitude   Decimal? @db.Decimal(10, 7)
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  complement    String?
+  neighborhood  String?
+  city          String?
+  state         String?
+  zipCode       String?
+  reference     String?
+  latitude      Decimal? @db.Decimal(10, 7)
+  longitude     Decimal? @db.Decimal(10, 7)
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -507,40 +507,40 @@ model CustomerAddress {
 // orderNumber: sequencial amigável (ex.: 1001). deliveryAddressSnapshot: JSON ou texto do endereço no momento do pedido.
 // =============================================================================
 model Order {
-  id                    String         @id @default(cuid())
-  tenantId               String
-  establishmentId       String
-  customerId             String?
-  couponId               String?
-  orderNumber            String         // sequencial por tenant/establishment (ex.: 1001)
-  type                   OrderType
-  status                 OrderStatus
-  paymentMethod          PaymentMethod?
-  paymentStatus          PaymentStatus  @default(PENDING)
-  subtotalAmount         Decimal        @db.Decimal(10, 2)
-  discountAmount         Decimal        @db.Decimal(10, 2) @default(0)
-  deliveryFee            Decimal        @db.Decimal(10, 2) @default(0)
-  totalAmount            Decimal        @db.Decimal(10, 2)
-  notes                  String?
-  customerName           String?
-  customerPhone          String?
-  deliveryAddressSnapshot String?       // endereço no momento do pedido (texto ou JSON)
-  tableId                 String?       // mesa/comanda (consumo no local)
-  placedAt               DateTime       @default(now())
-  confirmedAt            DateTime?
-  cancelledAt            DateTime?
-  finishedAt             DateTime?
-  deletedAt              DateTime?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  id                      String         @id @default(cuid())
+  tenantId                String
+  establishmentId         String
+  customerId              String?
+  couponId                String?
+  orderNumber             String // sequencial por tenant/establishment (ex.: 1001)
+  type                    OrderType
+  status                  OrderStatus
+  paymentMethod           PaymentMethod?
+  paymentStatus           PaymentStatus  @default(PENDING)
+  subtotalAmount          Decimal        @db.Decimal(10, 2)
+  discountAmount          Decimal        @default(0) @db.Decimal(10, 2)
+  deliveryFee             Decimal        @default(0) @db.Decimal(10, 2)
+  totalAmount             Decimal        @db.Decimal(10, 2)
+  notes                   String?
+  customerName            String?
+  customerPhone           String?
+  deliveryAddressSnapshot String? // endereço no momento do pedido (texto ou JSON)
+  tableId                 String? // mesa/comanda (consumo no local)
+  placedAt                DateTime       @default(now())
+  confirmedAt             DateTime?
+  cancelledAt             DateTime?
+  finishedAt              DateTime?
+  deletedAt               DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
-  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  customer   Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  coupon     Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  table      Table?         @relation(fields: [tableId], references: [id], onDelete: SetNull)
-  items      OrderItem[]
-  payments   Payment[]
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  table         Table?        @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  payments      Payment[]
 
   @@unique([tenantId, establishmentId, orderNumber])
   @@index([tenantId])
@@ -558,21 +558,21 @@ model Order {
 // productId opcional: produto pode ser descontinuado; productNameSnapshot preserva o nome no momento do pedido.
 // =============================================================================
 model OrderItem {
-  id                 String   @id @default(cuid())
-  tenantId           String
-  orderId            String
-  productId          String?  // opcional se produto for removido
+  id                  String   @id @default(cuid())
+  tenantId            String
+  orderId             String
+  productId           String? // opcional se produto for removido
   productNameSnapshot String
-  unitPrice          Decimal  @db.Decimal(10, 2)
-  quantity           Int
-  totalPrice         Decimal  @db.Decimal(10, 2)
-  notes              String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  unitPrice           Decimal  @db.Decimal(10, 2)
+  quantity            Int
+  totalPrice          Decimal  @db.Decimal(10, 2)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  tenant  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order   Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
   options OrderItemOption[]
 
   @@index([tenantId])
@@ -584,15 +584,15 @@ model OrderItem {
 // ORDER ITEM OPTION (opcional escolhido no pedido - snapshot)
 // =============================================================================
 model OrderItemOption {
-  id                      String   @id @default(cuid())
-  tenantId                String
-  orderItemId             String
+  id                        String   @id @default(cuid())
+  tenantId                  String
+  orderItemId               String
   optionalGroupNameSnapshot String
   optionalItemNameSnapshot  String
-  price                   Decimal  @db.Decimal(10, 2)
-  quantity                Int      @default(1)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  price                     Decimal  @db.Decimal(10, 2)
+  quantity                  Int      @default(1)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
@@ -605,24 +605,24 @@ model OrderItemOption {
 // PAYMENT (transação de pagamento vinculada ao pedido)
 // =============================================================================
 model Payment {
-  id                 String    @id @default(cuid())
-  tenantId           String
-  establishmentId    String
-  orderId            String
-  provider           String?   // stripe, mercadopago, pagseguro, etc
-  method             String    // pix, card, cash, etc (pode espelhar enum)
-  status             String    // pending, approved, rejected, refunded
-  amount             Decimal   @db.Decimal(10, 2)
-  transactionId      String?
-  externalReference  String?
-  paidAt             DateTime?
-  rawPayload         Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  tenantId          String
+  establishmentId   String
+  orderId           String
+  provider          String? // stripe, mercadopago, pagseguro, etc
+  method            String // pix, card, cash, etc (pode espelhar enum)
+  status            String // pending, approved, rejected, refunded
+  amount            Decimal   @db.Decimal(10, 2)
+  transactionId     String?
+  externalReference String?
+  paidAt            DateTime?
+  rawPayload        Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([establishmentId])
@@ -644,9 +644,9 @@ model Table {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  orders       Order[]
+  orders        Order[]
 
   @@index([tenantId])
   @@index([establishmentId])
@@ -663,16 +663,16 @@ model Cart {
   customerId      String?
   sessionId       String
   status          String   @default("open") // open, abandoned, converted
-  subtotal        Decimal  @db.Decimal(10, 2) @default(0)
-  discount        Decimal  @db.Decimal(10, 2) @default(0)
-  deliveryFee     Decimal  @db.Decimal(10, 2) @default(0)
-  total           Decimal  @db.Decimal(10, 2) @default(0)
+  subtotal        Decimal  @default(0) @db.Decimal(10, 2)
+  discount        Decimal  @default(0) @db.Decimal(10, 2)
+  deliveryFee     Decimal  @default(0) @db.Decimal(10, 2)
+  total           Decimal  @default(0) @db.Decimal(10, 2)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
-  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items         CartItem[]
 
   @@index([tenantId])
@@ -704,17 +704,17 @@ model CartItem {
 // DELIVERY ZONE (zona de entrega - taxa e tempo)
 // =============================================================================
 model DeliveryZone {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   tenantId        String
   establishmentId String
   name            String
-  type            String   // radius, polygon
-  fee             Decimal  @db.Decimal(10, 2)
-  minTime         Int      // minutos
-  maxTime         Int      // minutos
-  isActive        Boolean  @default(true)
+  type            String // radius, polygon
+  fee             Decimal @db.Decimal(10, 2)
+  minTime         Int // minutos
+  maxTime         Int // minutos
+  isActive        Boolean @default(true)
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -728,7 +728,7 @@ model AuditLog {
   id        String   @id @default(cuid())
   tenantId  String
   userId    String
-  action    String   // create, update, delete, login
+  action    String // create, update, delete, login
   entity    String
   entityId  String?
   meta      Json?
@@ -748,18 +748,20 @@ model AuditLog {
 // =============================================================================
 
 model Subscription {
-  id                    String    @id @default(cuid())
-  tenantId              String    @unique
-  plan                  String    // basic, pro, enterprise (espelha Tenant.plan)
-  status                SubscriptionStatus @default(active)
-  currentPeriodStart    DateTime?
-  currentPeriodEnd      DateTime?
-  cancelAtPeriodEnd     Boolean   @default(false)
-  cancelledAt          DateTime?
-  externalSubscriptionId String?  // id no gateway (Stripe, etc.)
-  provider             String?   // stripe, mercadopago, etc.
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                     String             @id @default(cuid())
+  tenantId               String             @unique
+  plan                   String // basic, pro, enterprise (espelha Tenant.plan)
+  status                 SubscriptionStatus @default(active)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  cancelledAt            DateTime?
+  trialStartsAt          DateTime? // início do período de trial (SaaS)
+  trialEndsAt            DateTime? // fim do período de trial (SaaS)
+  externalSubscriptionId String? // id no gateway (Stripe, etc.)
+  provider               String? // stripe, mercadopago, etc.
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   invoices SubscriptionInvoice[]
@@ -770,18 +772,18 @@ model Subscription {
 }
 
 model SubscriptionInvoice {
-  id                 String        @id @default(cuid())
-  tenantId           String
-  subscriptionId     String?
-  amount             Decimal       @db.Decimal(10, 2)
-  currency           String        @default("BRL")
-  status             InvoiceStatus  @default(draft)
-  dueAt              DateTime?
-  paidAt             DateTime?
-  externalInvoiceId  String?
-  provider           String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  tenantId          String
+  subscriptionId    String?
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("BRL")
+  status            InvoiceStatus @default(draft)
+  dueAt             DateTime?
+  paidAt            DateTime?
+  externalInvoiceId String?
+  provider          String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
@@ -793,14 +795,18 @@ model SubscriptionInvoice {
 }
 
 model BillingEvent {
-  id        String   @id @default(cuid())
-  tenantId  String
-  eventType String   // subscription.created, invoice.paid, webhook.received, etc.
-  payload   Json?
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  tenantId        String
+  eventType       String // subscription.created, invoice.paid, webhook.received, etc.
+  payload         Json?
+  provider        String? // mercadopago, stripe, etc. (evento externo)
+  externalEventId String? // id do evento no provedor (idempotência)
+  processedAt     DateTime? // preenchido quando o processamento do evento termina
+  createdAt       DateTime  @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([provider, externalEventId])
   @@index([tenantId])
   @@index([eventType])
   @@index([createdAt])

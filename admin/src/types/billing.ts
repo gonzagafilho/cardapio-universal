@@ -11,6 +11,11 @@ export interface SubscriptionView {
   provider: string | null;
   createdAt: string;
   updatedAt: string;
+  trialStartsAt?: string | null;
+  trialEndsAt?: string | null;
+  isTrialActive?: boolean;
+  isTrialExpired?: boolean;
+  daysLeftInTrial?: number | null;
 }
 
 /** Item do histórico de faturas (GET /billing/invoices) */
