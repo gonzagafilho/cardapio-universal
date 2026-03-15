@@ -4,6 +4,9 @@ export const API_BASE_URL =
 /** Host padrão do app público (landing / slug). Outro host = subdomínio ou domínio customizado. */
 export const APP_HOST = process.env.NEXT_PUBLIC_APP_HOST ?? 'localhost';
 
+/** Host base do menu (ex.: menu.cardapio.nexoracloud.com.br). Quando o visitante acessa esse host exato, vê página premium em vez de DomainNotFound. Deixe vazio para não usar. */
+export const MENU_BASE_HOST = (process.env.NEXT_PUBLIC_MENU_BASE_HOST ?? '').toLowerCase().trim();
+
 /** URL base do app público (para links "Voltar ao site" em 404 de domínio). Defina NEXT_PUBLIC_APP_URL em produção. */
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? `https://${APP_HOST}`;
 
