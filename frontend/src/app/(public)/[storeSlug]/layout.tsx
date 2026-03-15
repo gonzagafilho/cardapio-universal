@@ -1,9 +1,15 @@
 import { ReactNode } from 'react';
+import { PwaRegister } from '@/components/PwaRegister';
 
 export default function PublicStoreLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <PwaRegister />
+      {children}
+    </>
+  );
 }

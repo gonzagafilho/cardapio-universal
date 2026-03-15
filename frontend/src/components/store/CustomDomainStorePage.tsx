@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/components/store';
 import { LoadingPage } from '@/components/ui/loading';
 import { DomainNotFound } from '@/components/store/DomainNotFound';
+import { PwaRegister } from '@/components/PwaRegister';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
 import type { Product } from '@/types/product';
@@ -27,9 +28,12 @@ export function CustomDomainStorePage({ host }: { host: string }) {
   const [cartOpen, setCartOpen] = useState(false);
 
   const { setStore } = useCart();
-  if (store) {
+
+    useEffect(() => {
+    if (store) {
     setStore(store.slug, store.id);
-  }
+    }
+  }, [store, setStore]);
 
   const filteredProducts = useMemo(() => {
     if (!activeCategoryId) return products;
@@ -119,6 +123,7 @@ export function CustomDomainStorePage({ host }: { host: string }) {
         storeSlug={store.slug}
         linkBase={linkBase}
       />
+      <PwaRegister />
     </div>
   );
 }
