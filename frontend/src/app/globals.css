@@ -35,3 +35,31 @@ body {
 .scrollbar-thin::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
+
+@keyframes nxFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nx-fade-up {
+  opacity: 0;
+  animation: nxFadeUp 650ms ease-out forwards;
+}
+
+.nx-delay-1 {
+  animation-delay: 80ms;
+}
+
+.nx-delay-2 {
+  animation-delay: 160ms;
+}
+
+.nx-delay-3 {
+  animation-delay: 240ms;
+}

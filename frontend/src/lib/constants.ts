@@ -13,6 +13,13 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? `https://${APP_HOST}`;
 /** URL base do admin (para CTAs: Entrar, Criar conta / onboarding). */
 export const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'https://admin.cardapio.nexoracloud.com.br';
 
+/** WhatsApp comercial (NEXORA): número com DDI, ex. 5511999999999. Gera link wa.me para CTA "Falar no WhatsApp". */
+export const WHATSAPP_COMERCIAL =
+  process.env.NEXT_PUBLIC_WHATSAPP_COMERCIAL?.trim() ?? '';
+export const WHATSAPP_COMERCIAL_URL = WHATSAPP_COMERCIAL
+  ? `https://wa.me/${WHATSAPP_COMERCIAL.replace(/\D/g, '')}`
+  : '';
+
 /** Slug da loja para páginas públicas /menu e /product (quando não há [storeSlug] na URL). */
 export const DEFAULT_STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG ?? '';
 

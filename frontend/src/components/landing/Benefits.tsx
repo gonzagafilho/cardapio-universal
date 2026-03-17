@@ -1,21 +1,21 @@
 const BENEFITS = [
   {
     index: '01',
-    title: 'QR Code automático',
+    title: 'Pare de depender de cardápio impresso',
     description:
-      'Gere o QR Code do cardápio direto no painel e disponibilize nas mesas, balcão ou embalagens.',
+      'Atualize preços, produtos e categorias em segundos sem precisar reimprimir material sempre que mudar algo.',
   },
   {
     index: '02',
-    title: 'Atualização em segundos',
+    title: 'Ofereça QR Code automático para o cliente',
     description:
-      'Altere preços, categorias, itens e disponibilidade sem depender de impressão ou retrabalho.',
+      'Coloque o acesso ao cardápio nas mesas, no balcão, no delivery e no WhatsApp com um link simples e prático.',
   },
   {
     index: '03',
-    title: 'Experiência profissional',
+    title: 'Passe mais profissionalismo e venda melhor',
     description:
-      'Layout responsivo, navegação clara e apresentação moderna para transmitir mais valor ao cliente.',
+      'Apresente seus produtos com um visual moderno, organizado e fácil de navegar em qualquer celular.',
   },
 ];
 
@@ -32,13 +32,13 @@ export function Benefits() {
               Benefícios
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-black sm:text-4xl">
-              Mais agilidade para operar e mais valor para apresentar.
+              Mais praticidade para o seu negócio e mais valor para o seu cliente.
             </h2>
           </div>
 
           <p className="max-w-2xl text-lg leading-8 text-gray-600">
-            A Nexora combina praticidade operacional com uma experiência visual moderna,
-            para que seu cardápio seja fácil de manter e melhor de vender.
+            A Nexora foi pensada para restaurantes que querem apresentar melhor seus produtos,
+            atualizar o cardápio com rapidez e vender com mais presença no digital.
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export function Benefits() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-400">{item.index}</span>
                 <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                  Premium
+                  Resultado real
                 </span>
               </div>
 

@@ -1,10 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStoreData } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
-import { useCheckout } from '@/hooks/useCheckout';
+import {
+  getOrCreateSessionId,
+  syncPublicCart,
+  getPublicCart,
+  createPublicOrder,
+} from '@/services/store.service';
 import { StoreHeader, CheckoutFormSimple, CartSummary, StoreFooter } from '@/components/store';
 import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
@@ -20,8 +26,9 @@ export default function CheckoutPage({ params }: PageProps) {
   const { storeSlug } = params;
   const router = useRouter();
   const { store, settings, loading, error } = useStoreData(storeSlug);
-  const { items, establishmentId, subtotal, discount, deliveryFee, total, clearCart } = useCart();
-  const { submitOrder, loading: submitting, error: submitError } = useCheckout();
+  const { items, subtotal, discount, deliveryFee, total, clearCart } = useCart();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const minDelivery =
     settings?.minimumOrderDelivery != null
@@ -39,23 +46,35 @@ export default function CheckoutPage({ params }: PageProps) {
   };
 
   const handleSubmit = async (data: CheckoutFormSimpleData) => {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
     try {
-      const result = await submitOrder({
-        establishmentId: establishmentId ?? '',
-        cartId: '',
+      const sessionId = getOrCreateSessionId();
+      await syncPublicCart(storeSlug, sessionId, items);
+      const cart = await getPublicCart(storeSlug, sessionId);
+      const result = await createPublicOrder(storeSlug, {
+        sessionId,
+        cartId: cart.id,
         type: data.orderType,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         deliveryAddress: data.orderType === 'delivery' ? data.deliveryAddress : undefined,
         notes: data.notes?.trim() || undefined,
       });
-      if (result) {
-        const raw = result as { total?: number; totalAmount?: number };
-        const totalAmount = typeof raw.total === 'number' ? raw.total : typeof raw.totalAmount === 'number' ? raw.totalAmount : total;
-        goToSuccess(result.id, result.code, totalAmount);
+      if (result?.order) {
+        const o = result.order as { id: string; code?: string; totalAmount?: number; total?: number };
+        goToSuccess(o.id, o.code ?? undefined, o.totalAmount ?? o.total);
       }
-    } catch {
-      // error in useCheckout
+    } catch (err) {
+      const raw = (err as { message?: string }).message ?? 'Erro ao criar pedido';
+      const message =
+        /inválido|já convertido|convertido/i.test(raw)
+          ? 'Seu carrinho já foi utilizado ou expirou. Volte ao cardápio e monte o pedido novamente.'
+          : raw;
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 

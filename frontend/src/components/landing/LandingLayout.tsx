@@ -31,7 +31,7 @@ export function LandingLayout({ children }: { children: ReactNode }) {
               Demonstração
             </Link>
             <Link
-              href="/#planos"
+              href="/planos"
               className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-black"
             >
               Planos
@@ -45,12 +45,12 @@ export function LandingLayout({ children }: { children: ReactNode }) {
             >
               Entrar
             </a>
-            <a
-              href={`${ADMIN_URL}/onboarding`}
+            <Link
+              href="/comecar"
               className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(0,0,0,0.12)] transition hover:bg-gray-800"
             >
               Criar conta
-            </a>
+            </Link>
           </div>
         </div>
       </header>

@@ -1,10 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
-import { useCheckout } from '@/hooks/useCheckout';
+import {
+  getOrCreateSessionId,
+  syncPublicCart,
+  getPublicCart,
+  createPublicOrder,
+} from '@/services/store.service';
 import { StoreHeader, CheckoutForm, CartSummary, StoreFooter, DomainNotFound } from '@/components/store';
 import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
@@ -15,27 +21,48 @@ const linkBase = '';
 export function CustomDomainCheckoutPage({ host }: { host: string }) {
   const router = useRouter();
   const { store, loading, error } = useStoreDataByHost(host);
-  const { items, establishmentId, subtotal, discount, deliveryFee, total } = useCart();
-  const { submitOrder, loading: submitting, error: submitError, order } = useCheckout();
+  const { items, subtotal, discount, deliveryFee, total, clearCart } = useCart();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async (data: import('@/components/store/CheckoutForm').CheckoutFormData) => {
+    if (!store || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
     try {
       const fullAddress = data.orderType === 'delivery'
         ? `${data.deliveryAddress}, ${data.addressNumber}${data.complement ? ` - ${data.complement}` : ''} - ${data.neighborhood}${data.reference ? ` (${data.reference})` : ''}`
         : undefined;
-      const result = await submitOrder({
-        establishmentId: establishmentId ?? '',
-        cartId: '',
+      const sessionId = getOrCreateSessionId();
+      await syncPublicCart(store.slug, sessionId, items);
+      const cart = await getPublicCart(store.slug, sessionId);
+      const result = await createPublicOrder(store.slug, {
+        sessionId,
+        cartId: cart.id,
         type: data.orderType,
         paymentMethod: data.paymentMethod,
-        notes: data.notes,
+        notes: data.notes?.trim() || undefined,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         deliveryAddress: fullAddress,
       });
-      if (result) router.push(`/success?orderId=${result.id}`);
-    } catch {
-      //
+      if (result?.order) {
+        clearCart();
+        const o = result.order as { id: string; code?: string; totalAmount?: number; total?: number };
+        const qs = new URLSearchParams({ orderId: o.id });
+        if (o.code) qs.set('code', o.code);
+        if (o.totalAmount != null || o.total != null) qs.set('total', String(o.totalAmount ?? o.total));
+        router.push(`/success?${qs.toString()}`);
+      }
+    } catch (err) {
+      const raw = (err as { message?: string }).message ?? 'Erro ao criar pedido';
+      const message =
+        /inválido|já convertido|convertido/i.test(raw)
+          ? 'Seu carrinho já foi utilizado ou expirou. Volte ao cardápio e monte o pedido novamente.'
+          : raw;
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -44,7 +71,7 @@ export function CustomDomainCheckoutPage({ host }: { host: string }) {
     return <DomainNotFound host={host} description={error ?? undefined} />;
   }
 
-  if (items.length === 0 && !order) {
+  if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
         <StoreHeader store={store} storeSlug={store.slug} linkBase={linkBase} />

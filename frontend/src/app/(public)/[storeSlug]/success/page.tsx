@@ -53,6 +53,11 @@ export default function SuccessPage({ params }: PageProps) {
               Total: {formatCurrency(parseFloat(orderTotal))}
             </p>
           )}
+          {!orderId && (
+            <p className="mt-2 text-sm text-amber-700">
+              Anote o número do pedido se foi informado acima, ou volte ao cardápio.
+            </p>
+          )}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             {orderId && (
               <Link href={`/${storeSlug}/order/${orderId}`}>

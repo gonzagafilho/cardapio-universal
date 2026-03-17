@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useStoreData } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
 import {
@@ -32,9 +32,12 @@ export default function StorePage({ params }: PageProps) {
   const [cartOpen, setCartOpen] = useState(false);
 
   const { setStore } = useCart();
-  if (store) {
-    setStore(storeSlug, store.id);
-  }
+
+    useEffect(() => {
+    if (store) {
+     setStore(storeSlug, store.id);
+    }
+    }, [store, storeSlug, setStore]);
 
   const filteredProducts = useMemo(() => {
     if (!activeCategoryId) return products;

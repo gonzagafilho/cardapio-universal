@@ -10,18 +10,18 @@ export function Preview() {
             Demonstração
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-black sm:text-4xl">
-            Seu cardápio com aparência moderna e navegação intuitiva.
+            Um cardápio digital bonito, rápido e pensado para conversão.
           </h2>
           <p className="mt-4 text-lg leading-8 text-gray-600">
-            O cliente escaneia o QR Code, abre o cardápio no navegador e encontra
-            categorias, itens e preços de forma clara em qualquer dispositivo.
+            O cliente escaneia o QR Code, abre o cardápio no navegador e encontra produtos,
+            categorias e preços com clareza, rapidez e aparência profissional.
           </p>
 
           <div className="mt-8 space-y-4">
             {[
-              'Categorias organizadas para facilitar a navegação',
-              'Itens com preço e descrição atualizados em tempo real',
-              'Layout limpo, rápido e pronto para uso em mesas e delivery',
+              'Visual organizado para o cliente encontrar mais rápido o que quer pedir',
+              'Categorias e produtos atualizados em tempo real sem retrabalho',
+              'Estrutura ideal para mesas, balcão, delivery e divulgação no WhatsApp',
             ].map((item) => (
               <div
                 key={item}
@@ -97,7 +97,7 @@ export function Preview() {
                         QR Code na mesa
                       </p>
                       <p className="mt-1 text-xs text-gray-500">
-                        O cliente acessa sem instalar aplicativo
+                        O cliente acessa sem instalar aplicativo e faz o pedido com mais praticidade
                       </p>
                     </div>
                     <div className="grid h-16 w-16 grid-cols-4 gap-1 rounded-xl border border-gray-200 bg-gray-50 p-2">

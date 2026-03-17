@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ADMIN_URL } from '@/lib/constants';
+import { ChatWidget } from './ChatWidget';
 
 export function CommercialLayout({ children }: { children: React.ReactNode }) {
   const year = new Date().getFullYear();
@@ -35,7 +36,7 @@ export function CommercialLayout({ children }: { children: React.ReactNode }) {
               Entrar
             </a>
             <Link
-              href={`${ADMIN_URL}/onboarding`}
+              href="/comecar"
               className="inline-flex items-center justify-center rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-800"
             >
               Criar conta
@@ -45,6 +46,8 @@ export function CommercialLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="flex-1">{children}</main>
+
+      <ChatWidget />
 
       {/* Footer profissional */}
       <footer className="border-t border-gray-100 bg-white">
@@ -65,9 +68,9 @@ export function CommercialLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </li>
                 <li>
-                  <a href={`${ADMIN_URL}/onboarding`} className="text-sm text-gray-500 hover:text-gray-900">
+                  <Link href="/comecar" className="text-sm text-gray-500 hover:text-gray-900">
                     Começar grátis
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -80,9 +83,9 @@ export function CommercialLayout({ children }: { children: React.ReactNode }) {
                   </a>
                 </li>
                 <li>
-                  <a href={`${ADMIN_URL}/onboarding`} className="text-sm text-gray-500 hover:text-gray-900">
+                  <Link href="/comecar" className="text-sm text-gray-500 hover:text-gray-900">
                     Criar conta
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
