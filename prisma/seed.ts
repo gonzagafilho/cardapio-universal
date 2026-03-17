@@ -31,7 +31,7 @@ async function main() {
 
   // 2. Estabelecimento
   const establishment = await prisma.establishment.upsert({
-    where: { tenantId_slug: { tenantId: tenant.id, slug: ESTABLISHMENT_SLUG } },
+    where: { slug: ESTABLISHMENT_SLUG },
     update: {},
     create: {
       tenantId: tenant.id,

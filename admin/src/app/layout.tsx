@@ -3,8 +3,11 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Painel Admin - Cardápio Universal',
-  description: 'Administração do cardápio digital',
+  title: 'NexoraCloud Admin',
+  description: 'Painel administrativo da NexoraCloud',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

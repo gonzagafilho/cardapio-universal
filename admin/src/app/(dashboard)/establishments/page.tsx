@@ -40,7 +40,7 @@ export default function EstablishmentsPage() {
 
   if (!canView) {
     return (
-      <AccessDenied description="Seu perfil não pode acessar estabelecimentos." />
+      <AccessDenied description="Seu perfil não pode acessar esta área." />
     );
   }
 
@@ -76,7 +76,7 @@ export default function EstablishmentsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Estabelecimentos</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Meu restaurante</h1>
 
         {canCreate && (
           <Link href="/establishments/new">

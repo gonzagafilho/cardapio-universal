@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ReorderProductsDto } from './dto/reorder-products.dto';
@@ -7,7 +8,18 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
+
+  private async invalidateStoreProductCache(establishmentId: string, categoryId?: string, productId?: string): Promise<void> {
+    await Promise.all([
+      this.cache.del(`store:${establishmentId}:products`),
+      categoryId ? this.cache.del(`store:${establishmentId}:products:${categoryId}`) : Promise.resolve(),
+      productId ? this.cache.del(`store:${establishmentId}:product:${productId}`) : Promise.resolve(),
+    ]);
+  }
 
   async create(
     tenantId: string,
@@ -15,7 +27,7 @@ export class ProductsService {
     dto: CreateProductDto,
   ) {
     const slug = (dto as { slug?: string }).slug ?? dto.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         tenantId,
         establishmentId,
@@ -34,6 +46,8 @@ export class ProductsService {
       },
       include: { category: true },
     });
+    await this.invalidateStoreProductCache(establishmentId, dto.categoryId, product.id);
+    return product;
   }
 
   async findAll(
@@ -65,29 +79,34 @@ export class ProductsService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateProductDto) {
-    await this.findOne(tenantId, id);
+    const existing = await this.findOne(tenantId, id);
     const data: Record<string, unknown> = { ...dto };
     if (dto.price != null) data.price = new Decimal(dto.price);
     if (dto.promotionalPrice != null) data.compareAtPrice = new Decimal(dto.promotionalPrice);
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: data as never,
       include: { category: true },
     });
+    await this.invalidateStoreProductCache(existing.establishmentId, existing.categoryId, id);
+    return updated;
   }
 
   async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+    const existing = await this.findOne(tenantId, id);
     await this.prisma.product.delete({ where: { id } });
+    await this.invalidateStoreProductCache(existing.establishmentId, existing.categoryId, id);
     return { message: 'Produto removido' };
   }
 
   async updateStatus(tenantId: string, id: string, isActive: boolean) {
-    await this.findOne(tenantId, id);
-    return this.prisma.product.update({
+    const existing = await this.findOne(tenantId, id);
+    const updated = await this.prisma.product.update({
       where: { id },
       data: { isActive },
     });
+    await this.invalidateStoreProductCache(existing.establishmentId, existing.categoryId, id);
+    return updated;
   }
 
   async reorder(
@@ -103,6 +122,7 @@ export class ProductsService {
         }),
       ),
     );
+    await this.invalidateStoreProductCache(establishmentId);
     return this.findAll(tenantId, establishmentId);
   }
 }

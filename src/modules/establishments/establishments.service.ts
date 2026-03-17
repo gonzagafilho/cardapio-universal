@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { PlansService } from '../plans/plans.service';
 import { CreateEstablishmentDto } from './dto/create-establishment.dto';
 import { UpdateEstablishmentDto } from './dto/update-establishment.dto';
@@ -15,6 +16,7 @@ import { ROLES } from '../../common/constants/roles';
 export class EstablishmentsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
     private readonly plansService: PlansService,
   ) {}
 
@@ -35,9 +37,9 @@ export class EstablishmentsService {
     await this.plansService.checkEstablishmentsLimit(tenantId);
     const slug = (dto.slug ?? dto.name).toLowerCase().replace(/\s+/g, '-');
     const existing = await this.prisma.establishment.findUnique({
-      where: { tenantId_slug: { tenantId, slug } },
+      where: { slug },
     });
-    if (existing) throw new ConflictException('Slug já em uso neste tenant');
+    if (existing) throw new ConflictException('Slug já em uso (deve ser único no sistema)');
     return this.prisma.establishment.create({
       data: {
         tenantId,
@@ -89,15 +91,15 @@ export class EstablishmentsService {
     dto: UpdateEstablishmentDto,
     user: JwtPayload,
   ) {
-    await this.findOne(tenantId, id, user);
+    const current = await this.findOne(tenantId, id, user);
     const slug = dto.slug
       ? dto.slug.toLowerCase().replace(/\s+/g, '-')
       : undefined;
     if (slug) {
-      const existing = await this.prisma.establishment.findFirst({
-        where: { tenantId, slug, id: { not: id } },
+      const existing = await this.prisma.establishment.findUnique({
+        where: { slug },
       });
-      if (existing) throw new ConflictException('Slug já em uso');
+      if (existing && existing.id !== id) throw new ConflictException('Slug já em uso (deve ser único no sistema)');
     }
     const customDomain =
       dto.customDomain !== undefined
@@ -112,7 +114,7 @@ export class EstablishmentsService {
       if (existing) throw new ConflictException('Este domínio já está em uso por outro estabelecimento');
     }
     try {
-      return await this.prisma.establishment.update({
+      const updated = await this.prisma.establishment.update({
         where: { id },
         data: {
           ...dto,
@@ -120,6 +122,13 @@ export class EstablishmentsService {
           ...(customDomain !== undefined && { customDomain }),
         },
       });
+      await Promise.all([
+        current.slug ? this.cache.del(`store:slug:${current.slug}`) : Promise.resolve(),
+        current.customDomain ? this.cache.del(`store:host:${current.customDomain.split(':')[0].toLowerCase()}`) : Promise.resolve(),
+        updated.slug ? this.cache.del(`store:slug:${updated.slug}`) : Promise.resolve(),
+        updated.customDomain ? this.cache.del(`store:host:${updated.customDomain.split(':')[0].toLowerCase()}`) : Promise.resolve(),
+      ]);
+      return updated;
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         throw new ConflictException('Este domínio já está em uso');

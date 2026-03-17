@@ -29,7 +29,7 @@ export class PlansService {
     });
     if (count >= limits.establishments) {
       throw new BadRequestException(
-        `Seu plano atual permite até ${limits.establishments} estabelecimento(s). Para adicionar mais, faça upgrade do seu plano.`,
+        'Seu plano atual não permite adicionar mais restaurantes. Faça upgrade em Assinatura para continuar.',
       );
     }
   }

@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -32,14 +33,53 @@ import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 import databaseConfig from './config/database/database.config';
 import authConfig from './config/auth/auth.config';
 import mercadopagoConfig from './config/mercadopago/mercadopago.config';
+import redisConfig from './config/redis/redis.config';
+import { CacheModule } from './modules/cache/cache.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+
+const redisUrl = process.env.REDIS_URL?.trim() ?? '';
+const useBullQueue = redisUrl.startsWith('redis://');
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, authConfig, mercadopagoConfig],
+      load: [databaseConfig, authConfig, mercadopagoConfig, redisConfig],
     }),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 60_000, limit: 60 },
+      { name: 'publicRead', ttl: 60_000, limit: 120 },
+      { name: 'publicWrite', ttl: 60_000, limit: 20 },
+      { name: 'auth', ttl: 60_000, limit: 10 },
+    ]),
     PrismaModule,
+    CacheModule,
+    ...(useBullQueue
+      ? [
+          BullModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (config: ConfigService) => {
+              const url = config.get<string>('redis.url')?.trim() || '';
+              if (url.startsWith('redis://')) {
+                try {
+                  const u = new URL(url);
+                  return {
+                    connection: {
+                      host: u.hostname || 'localhost',
+                      port: u.port ? parseInt(u.port, 10) : 6379,
+                      password: u.password || undefined,
+                    },
+                  };
+                } catch {
+                  return { connection: { host: 'localhost', port: 6379 } };
+                }
+              }
+              return { connection: { host: 'localhost', port: 6379 } };
+            },
+            inject: [ConfigService],
+          }),
+        ]
+      : []),
     AuthModule,
     UsersModule,
     TenantsModule,

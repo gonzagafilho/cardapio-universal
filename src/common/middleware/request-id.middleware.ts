@@ -10,7 +10,9 @@ export function requestIdMiddleware(
   next: NextFunction,
 ): void {
   const id = randomUUID();
-  (req as Request & { requestId?: string }).requestId = id;
+  const r = req as Request & { requestId?: string; startTime?: number };
+  r.requestId = id;
+  r.startTime = Date.now();
   res.setHeader(REQUEST_ID_HEADER, id);
   next();
 }

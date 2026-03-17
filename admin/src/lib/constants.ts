@@ -1,6 +1,12 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
+/** Base URL do WebSocket (mesmo host/porta da API, sem /api). Socket.IO usa path /socket.io. */
+export const WS_BASE_URL =
+  typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_WS_URL ?? new URL(API_BASE_URL).origin)
+    : '';
+
 /** URL base do app público (cardápio). Definir NEXT_PUBLIC_APP_URL em produção. */
 export const APP_PUBLIC_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';

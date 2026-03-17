@@ -45,7 +45,7 @@ export default function NewUserPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900">Novo usuário</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Novo membro</h1>
       <UserForm establishmentOptions={establishmentOptions} onSubmit={handleSubmit} loading={loading} />
     </div>
   );

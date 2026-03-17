@@ -16,6 +16,7 @@ export function getOrderStatusLabel(status: string): string {
     READY: 'Pronto',
     OUT_FOR_DELIVERY: 'Saiu para entrega',
     DELIVERED: 'Entregue',
+    COMPLETED: 'Concluído',
     CANCELLED: 'Cancelado',
   };
   return labels[status] ?? status;

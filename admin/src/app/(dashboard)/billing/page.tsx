@@ -10,6 +10,7 @@ import {
   reactivateSubscription,
   getInvoices,
 } from '@/services/billing.service';
+import { getEstablishments } from '@/services/establishment.service';
 import { getPlanLimits, PLAN_OPTIONS, type PlanKey } from '@/lib/plans';
 import { Button } from '@/components/ui/button';
 import { LoadingPage } from '@/components/ui/loading';
@@ -58,6 +59,7 @@ export default function BillingPage() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionView | null>(null);
   const [invoices, setInvoices] = useState<InvoiceView[]>([]);
+  const [establishmentsCount, setEstablishmentsCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showTrialExpiredBanner, setShowTrialExpiredBanner] = useState(false);
@@ -67,10 +69,11 @@ export default function BillingPage() {
   const load = () => {
     if (!canView) return;
     setLoading(true);
-    Promise.all([getSubscription(), getInvoices()])
-      .then(([sub, inv]) => {
+    Promise.all([getSubscription(), getInvoices(), getEstablishments().then((list) => list.length).catch(() => null)])
+      .then(([sub, inv, count]) => {
         setSubscription(sub ?? null);
         setInvoices(Array.isArray(inv) ? inv : []);
+        setEstablishmentsCount(count ?? null);
         if (sub?.status === 'active' && typeof window !== 'undefined') {
           window.sessionStorage.removeItem(TRIAL_EXPIRED_STORAGE_KEY);
           setShowTrialExpiredBanner(false);
@@ -80,6 +83,7 @@ export default function BillingPage() {
       .catch(() => {
         setSubscription(null);
         setInvoices([]);
+        setEstablishmentsCount(null);
       })
       .finally(() => setLoading(false));
   };
@@ -199,12 +203,21 @@ export default function BillingPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900">Planos disponíveis</h2>
         <p className="mt-1 text-sm text-gray-500">
-          {showTrialExpiredAlert
+          Cobrança por quantidade de restaurantes. {showTrialExpiredAlert
             ? 'Selecione um plano para continuar.'
             : showTrialActiveMessage
               ? 'Você pode fazer upgrade a qualquer momento.'
-              : 'Altere seu plano quando precisar.'}
+              : 'Altere seu plano quando precisar de mais restaurantes.'}
         </p>
+        <p className="mt-2 text-sm font-medium text-gray-700">
+          Cada restaurante adicional: +R$ 119/mês
+        </p>
+        <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          <p className="font-medium">Pagamento seguro no Mercado Pago</p>
+          <p className="mt-0.5 text-blue-800/90">
+            Ao clicar em &quot;Escolher plano&quot; ou &quot;Fazer upgrade&quot;, você será redirecionado ao site do Mercado Pago para informar seu cartão de forma segura. Não armazenamos dados de cartão.
+          </p>
+        </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {PLAN_OPTIONS.map((option) => {
             const limitsForPlan = getPlanLimits(option.value);
@@ -231,8 +244,7 @@ export default function BillingPage() {
                   )}
                 </div>
                 <p className="mt-2 text-sm text-gray-600">
-                  {limitsForPlan.establishments}{' '}
-                  {limitsForPlan.establishments === 1 ? 'estabelecimento' : 'estabelecimentos'},{' '}
+                  {limitsForPlan.establishments} restaurante{limitsForPlan.establishments !== 1 ? 's' : ''} incluído{limitsForPlan.establishments !== 1 ? 's' : ''},{' '}
                   {limitsForPlan.users} usuários
                 </p>
                 <div className="mt-4">
@@ -262,6 +274,21 @@ export default function BillingPage() {
         <h2 className="text-lg font-semibold text-gray-900">Assinatura atual</h2>
         {subscription ? (
           <>
+            {limits && (
+              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                <p className="font-medium text-gray-900">
+                  Restaurantes incluídos no plano: até {limits.establishments} {limits.establishments === 1 ? 'restaurante' : 'restaurantes'}
+                </p>
+                {establishmentsCount != null && (
+                  <p className="mt-1 text-gray-600">
+                    Em uso: {establishmentsCount} de {limits.establishments}
+                    {establishmentsCount >= limits.establishments && (
+                      <span className="ml-1 font-medium text-amber-700"> — faça upgrade para adicionar mais</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
             <dl className="mt-3 grid gap-2 sm:grid-cols-2">
               <div>
                 <dt className="text-sm text-gray-500">Plano</dt>

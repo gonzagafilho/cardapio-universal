@@ -39,9 +39,13 @@ export type AppPermission =
   | 'platform.view'
   | 'billing.view';
 
-type MenuItem = {
+export type MenuItem = {
   path: string;
   label: string;
+  /** Label no painel do restaurante (cliente final). Se não definir, usa label. */
+  labelRestaurant?: string;
+  /** Ordem no menu para papéis do restaurante (menor = mais em cima). SUPER_ADMIN mantém ordem do array. */
+  orderRestaurant?: number;
   permission: AppPermission;
   check: (role: Role) => boolean;
 };
@@ -157,6 +161,10 @@ export function canAccessOrders(role: Role): boolean {
   return hasPermission(role, 'orders.view');
 }
 
+export function canAccessCozinha(role: Role): boolean {
+  return hasPermission(role, 'orders.view');
+}
+
 export function canAccessCustomers(role: Role): boolean {
   return hasPermission(role, 'customers.view');
 }
@@ -211,6 +219,7 @@ export function canAccessPath(role: Role, path: string): boolean {
   if (path.startsWith('/categories')) return canAccessCategories(role);
   if (path.startsWith('/products')) return canAccessProducts(role);
   if (path.startsWith('/orders')) return canAccessOrders(role);
+  if (path === '/cozinha') return canAccessCozinha(role);
   if (path.startsWith('/customers')) return canAccessCustomers(role);
   if (path.startsWith('/payments')) return canAccessPayments(role);
   if (path.startsWith('/coupons')) return canAccessCoupons(role);
@@ -223,22 +232,25 @@ export function canAccessPath(role: Role, path: string): boolean {
 }
 
 export const MENU_ITEMS: MenuItem[] = [
-  { path: '/dashboard', label: 'Dashboard', permission: 'dashboard.view', check: canAccessDashboard },
-  { path: '/platform/tenants', label: 'Plataforma', permission: 'platform.view', check: canAccessPlatform },
+  { path: '/dashboard', label: 'Dashboard', labelRestaurant: 'Início', orderRestaurant: 1, permission: 'dashboard.view', check: canAccessDashboard },
+  { path: '/platform/tenants', label: 'Plataforma', orderRestaurant: 100, permission: 'platform.view', check: canAccessPlatform },
   {
     path: '/establishments',
     label: 'Estabelecimentos',
+    labelRestaurant: 'Meu restaurante',
+    orderRestaurant: 2,
     permission: 'establishments.view',
     check: canAccessEstablishments,
   },
-  { path: '/categories', label: 'Categorias', permission: 'categories.view', check: canAccessCategories },
-  { path: '/products', label: 'Produtos', permission: 'products.view', check: canAccessProducts },
-  { path: '/orders', label: 'Pedidos', permission: 'orders.view', check: canAccessOrders },
-  { path: '/customers', label: 'Clientes', permission: 'customers.view', check: canAccessCustomers },
-  { path: '/payments', label: 'Pagamentos', permission: 'payments.view', check: canAccessPayments },
-  { path: '/coupons', label: 'Cupons', permission: 'coupons.view', check: canAccessCoupons },
-  { path: '/reports', label: 'Relatórios', permission: 'reports.view', check: canAccessReports },
-  { path: '/billing', label: 'Assinatura', permission: 'billing.view', check: canAccessBilling },
-  { path: '/settings', label: 'Configurações', permission: 'settings.view', check: canAccessSettings },
-  { path: '/users', label: 'Usuários', permission: 'users.view', check: canAccessUsers },
+  { path: '/categories', label: 'Categorias', orderRestaurant: 4, permission: 'categories.view', check: canAccessCategories },
+  { path: '/products', label: 'Produtos', orderRestaurant: 5, permission: 'products.view', check: canAccessProducts },
+  { path: '/orders', label: 'Pedidos', orderRestaurant: 6, permission: 'orders.view', check: canAccessOrders },
+  { path: '/cozinha', label: 'Cozinha', orderRestaurant: 7, permission: 'orders.view', check: canAccessCozinha },
+  { path: '/customers', label: 'Clientes', orderRestaurant: 9, permission: 'customers.view', check: canAccessCustomers },
+  { path: '/payments', label: 'Pagamentos', orderRestaurant: 10, permission: 'payments.view', check: canAccessPayments },
+  { path: '/coupons', label: 'Cupons', orderRestaurant: 11, permission: 'coupons.view', check: canAccessCoupons },
+  { path: '/reports', label: 'Relatórios', orderRestaurant: 12, permission: 'reports.view', check: canAccessReports },
+  { path: '/billing', label: 'Assinatura', orderRestaurant: 13, permission: 'billing.view', check: canAccessBilling },
+  { path: '/settings', label: 'Configurações', orderRestaurant: 8, permission: 'settings.view', check: canAccessSettings },
+  { path: '/users', label: 'Usuários', labelRestaurant: 'Equipe', orderRestaurant: 14, permission: 'users.view', check: canAccessUsers },
 ];

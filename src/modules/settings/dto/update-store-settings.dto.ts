@@ -39,6 +39,30 @@ export class UpdateStoreSettingsDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsBoolean()
+  paymentPix?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  paymentCardOnDelivery?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  paymentCardOnCounter?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  deliveryFee?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   minimumOrder?: number;
 

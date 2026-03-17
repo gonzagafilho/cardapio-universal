@@ -33,7 +33,7 @@ export default function UsersPage() {
   if (loading) return <LoadingPage />;
 
   if (!canView) {
-    return <AccessDenied description="Seu perfil não pode acessar usuários." />;
+    return <AccessDenied description="Seu perfil não pode acessar a equipe." />;
   }
 
   const columns: Column<User>[] = [
@@ -69,7 +69,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Usuários</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Equipe</h1>
         {canCreate && (
           <Link href="/users/new">
             <Button>Novo usuário</Button>

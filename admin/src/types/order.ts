@@ -7,6 +7,7 @@ export type OrderStatus =
   | 'READY'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
+  | 'COMPLETED'
   | 'CANCELLED';
 
 export interface OrderItem {

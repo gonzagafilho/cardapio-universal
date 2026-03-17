@@ -1,7 +1,7 @@
 /**
  * Limites por plano SaaS (Nexora).
- * Valores alinhados com Tenant.plan: basic, pro, enterprise.
- * Não implementa billing; apenas regras de uso.
+ * Alinhado ao modelo de cobrança por quantidade de restaurantes (pricing-restaurants.ts):
+ * basic = 1, pro = 2, enterprise = 3 estabelecimentos.
  */
 export const PLAN_LIMITS = {
   basic: {
@@ -10,12 +10,12 @@ export const PLAN_LIMITS = {
     label: 'Basic',
   },
   pro: {
-    establishments: 5,
+    establishments: 2,
     users: 15,
     label: 'Pro',
   },
   enterprise: {
-    establishments: 20,
+    establishments: 3,
     users: 50,
     label: 'Enterprise',
   },

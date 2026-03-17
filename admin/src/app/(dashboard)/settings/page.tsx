@@ -54,13 +54,13 @@ export default function SettingsPage() {
           </p>
           <dl className="mt-3 grid gap-2 sm:grid-cols-2">
             <div>
-              <dt className="text-sm text-gray-500">Estabelecimentos</dt>
+              <dt className="text-sm text-gray-500">Lojas</dt>
               <dd className="text-gray-900">
                 {usageEstablishments} / {limits.establishments}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-gray-500">Usuários</dt>
+              <dt className="text-sm text-gray-500">Equipe</dt>
               <dd className="text-gray-900">
                 {usageUsers} / {limits.users}
               </dd>

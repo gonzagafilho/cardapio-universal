@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Weekday } from '@prisma/client';
+import { OrdersService } from '../orders/orders.service';
+import { PaymentsService } from '../payments/payments.service';
+import { CacheService } from '../cache/cache.service';
+import { UpsertPublicCartItemDto } from './dto/upsert-public-cart-item.dto';
+import { CreatePublicOrderDto } from './dto/create-public-order.dto';
+
+const CACHE_NULL = '__CACHE_NULL__';
 
 type ProductRow = {
   price: Decimal;
@@ -76,6 +83,9 @@ export class StorePublicService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly ordersService: OrdersService,
+    private readonly paymentsService: PaymentsService,
+    private readonly cache: CacheService,
   ) {}
 
   /**
@@ -102,35 +112,62 @@ export class StorePublicService {
     const normalized = normalizeHost(host);
     if (!normalized) return null;
 
+    const cacheKey = `store:host:${normalized}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached !== null) {
+      if (cached === CACHE_NULL) return null;
+      return JSON.parse(cached);
+    }
+
     const byCustomDomain = await this.prisma.establishment.findFirst({
       where: { customDomain: normalized, isActive: true },
       include: { tenant: { select: { name: true, primaryColor: true, secondaryColor: true } } },
     });
-    if (byCustomDomain) return byCustomDomain;
+    if (byCustomDomain) {
+      await this.cache.set(cacheKey, JSON.stringify(byCustomDomain));
+      return byCustomDomain;
+    }
 
     const baseDomain = this.config.get<string>('SUBDOMAIN_BASE_DOMAIN') ?? '';
     const slug = extractSubdomainSlug(normalized, baseDomain);
     if (slug) {
       try {
-        return await this.getStoreBySlug(slug);
+        const store = await this.getStoreBySlug(slug);
+        await this.cache.set(cacheKey, JSON.stringify(store));
+        return store;
       } catch {
+        await this.cache.set(cacheKey, CACHE_NULL);
         return null;
       }
     }
+    await this.cache.set(cacheKey, CACHE_NULL);
     return null;
   }
 
-  async getStoreBySlug(slug: string) {
-    const establishment = await this.prisma.establishment.findFirst({
-      where: { slug, isActive: true },
-      include: { tenant: { select: { name: true, primaryColor: true, secondaryColor: true } } },
-    });
-    if (!establishment) throw new NotFoundException('Loja não encontrada');
-    return establishment;
-  }
+	  async getStoreBySlug(slug: string) {
+	    const cacheKey = `store:slug:${slug}`;
+	    const cached = await this.cache.get(cacheKey);
+	    if (cached !== null) {
+	      return JSON.parse(cached);
+	    }
+
+	    const establishment = await this.prisma.establishment.findUnique({
+	      where: { slug },
+	      include: { tenant: { select: { name: true, primaryColor: true, secondaryColor: true } } },
+	    });
+	    if (!establishment || !establishment.isActive) throw new NotFoundException('Loja não encontrada');
+	    await this.cache.set(cacheKey, JSON.stringify(establishment));
+	    return establishment;
+	  }
 
   async getCategories(tenantId: string, establishmentId: string) {
-    return this.prisma.category.findMany({
+    const cacheKey = `store:${establishmentId}:categories`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached !== null) {
+      return JSON.parse(cached);
+    }
+
+    const result = await this.prisma.category.findMany({
       where: { tenantId, establishmentId, isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: {
@@ -140,9 +177,19 @@ export class StorePublicService {
         sortOrder: true,
       },
     });
+    await this.cache.set(cacheKey, JSON.stringify(result));
+    return result;
   }
 
   async getProducts(tenantId: string, establishmentId: string, categoryId?: string) {
+    const cacheKey = categoryId
+      ? `store:${establishmentId}:products:${categoryId}`
+      : `store:${establishmentId}:products`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached !== null) {
+      return JSON.parse(cached);
+    }
+
     const rows = await this.prisma.product.findMany({
       where: {
         tenantId,
@@ -162,10 +209,18 @@ export class StorePublicService {
         },
       },
     });
-    return rows.map((row) => mapProductToPublic(row));
+    const result = rows.map((row) => mapProductToPublic(row));
+    await this.cache.set(cacheKey, JSON.stringify(result));
+    return result;
   }
 
   async getProduct(tenantId: string, establishmentId: string, productId: string) {
+    const cacheKey = `store:${establishmentId}:product:${productId}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached !== null) {
+      return JSON.parse(cached);
+    }
+
     const product = await this.prisma.product.findFirst({
       where: {
         id: productId,
@@ -185,10 +240,18 @@ export class StorePublicService {
       },
     });
     if (!product) throw new NotFoundException('Produto não encontrado');
-    return mapProductToPublic(product);
+    const result = mapProductToPublic(product);
+    await this.cache.set(cacheKey, JSON.stringify(result));
+    return result;
   }
 
-  async getSettings(tenantId: string, establishmentId: string) {
+     async getSettings(tenantId: string, establishmentId: string) {
+    const cacheKey = `store:${establishmentId}:settings`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached !== null) {
+      return JSON.parse(cached);
+    }
+
     const [settings, tenant, hours] = await Promise.all([
       this.prisma.storeSettings.findUnique({
         where: { tenantId_establishmentId: { tenantId, establishmentId } },
@@ -206,28 +269,391 @@ export class StorePublicService {
     const openHours: Record<string, { open: string; close: string } | null> = {};
     for (const h of hours ?? []) {
       const key = WEEKDAY_KEYS[h.weekday];
-      openHours[key] = h.isClosed || h.openTime == null || h.closeTime == null
-        ? null
-        : { open: h.openTime, close: h.closeTime };
+      openHours[key] =
+        h.isClosed || h.openTime == null || h.closeTime == null
+          ? null
+          : { open: h.openTime, close: h.closeTime };
     }
 
-    const base = settings ?? {};
-    const minimumOrder = settings?.minimumOrderAmount != null ? Number(settings.minimumOrderAmount) : undefined;
-    const minimumOrderDelivery =
-      settings?.minimumOrderAmountDelivery != null ? Number(settings.minimumOrderAmountDelivery) : undefined;
-    const deliveryEstimate =
-      settings?.estimatedDeliveryTimeMin != null || settings?.estimatedDeliveryTimeMax != null
-        ? settings?.estimatedDeliveryTimeMax ?? settings?.estimatedDeliveryTimeMin ?? undefined
-        : undefined;
-
-    return {
-      ...base,
+    const result = {
+      ...(settings ?? {}),
       primaryColor: tenant?.primaryColor ?? undefined,
       secondaryColor: tenant?.secondaryColor ?? undefined,
       openHours: Object.keys(openHours).length ? openHours : undefined,
-      minimumOrder,
-      minimumOrderDelivery,
-      deliveryEstimate: deliveryEstimate != null ? Number(deliveryEstimate) : undefined,
+      deliveryFee: settings?.deliveryFee != null ? Number(settings.deliveryFee) : undefined,
+      minimumOrderAmount:
+        settings?.minimumOrderAmount != null
+          ? Number(settings.minimumOrderAmount)
+          : undefined,
+      minimumOrderAmountDelivery:
+        settings?.minimumOrderAmountDelivery != null
+          ? Number(settings.minimumOrderAmountDelivery)
+          : undefined,
+      estimatedDeliveryTimeMin:
+        settings?.estimatedDeliveryTimeMin != null
+          ? Number(settings.estimatedDeliveryTimeMin)
+          : undefined,
+      estimatedDeliveryTimeMax:
+        settings?.estimatedDeliveryTimeMax != null
+          ? Number(settings.estimatedDeliveryTimeMax)
+          : undefined,
     };
+
+    await this.cache.set(cacheKey, JSON.stringify(result));
+    return result;
+  }
+    private async getOrCreateOpenCart(tenantId: string, establishmentId: string, sessionId: string) {
+    let cart = await this.prisma.cart.findFirst({
+      where: {
+        tenantId,
+        establishmentId,
+        sessionId,
+        status: 'open',
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!cart) {
+      cart = await this.prisma.cart.create({
+        data: {
+          tenantId,
+          establishmentId,
+          sessionId,
+          status: 'open',
+          subtotal: new Decimal(0),
+          discount: new Decimal(0),
+          deliveryFee: new Decimal(0),
+          total: new Decimal(0),
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+    }
+
+    return cart;
+  }
+
+  private async recalculateCart(cartId: string) {
+    const items = await this.prisma.cartItem.findMany({
+      where: { cartId },
+      select: {
+        totalPrice: true,
+      },
+    });
+
+    const subtotal = items.reduce((acc, item) => acc + Number(item.totalPrice), 0);
+    const discount = 0;
+    const deliveryFee = 0;
+    const total = subtotal - discount + deliveryFee;
+
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: {
+        subtotal: new Decimal(subtotal),
+        discount: new Decimal(discount),
+        deliveryFee: new Decimal(deliveryFee),
+        total: new Decimal(total),
+      },
+    });
+  }
+
+  private mapPublicCart(cart: any) {
+    return {
+      ...cart,
+      subtotal: Number(cart.subtotal ?? 0),
+      discount: Number(cart.discount ?? 0),
+      deliveryFee: Number(cart.deliveryFee ?? 0),
+      total: Number(cart.total ?? 0),
+      items: (cart.items ?? []).map((item: any) => ({
+        ...item,
+        unitPrice: Number(item.unitPrice ?? 0),
+        totalPrice: Number(item.totalPrice ?? 0),
+        product: item.product ? mapProductToPublic(item.product) : null,
+      })),
+    };
+  }
+
+  async upsertCartItem(slug: string, dto: UpsertPublicCartItemDto) {
+    const store = await this.getStoreBySlug(slug);
+
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: dto.productId,
+        tenantId: store.tenantId,
+        establishmentId: store.id,
+        isActive: true,
+      },
+      include: {
+        category: { select: { id: true, name: true } },
+        optionalGroups: {
+          include: {
+            optionalGroup: {
+              include: {
+                items: {
+                  where: { isActive: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+
+    if (product.isAvailable === false) {
+      throw new BadRequestException('Produto temporariamente indisponível');
+    }
+
+    const cart = await this.getOrCreateOpenCart(store.tenantId, store.id, dto.sessionId);
+
+    const existingItem = await this.prisma.cartItem.findFirst({
+      where: {
+        cartId: cart.id,
+        productId: dto.productId,
+      },
+    });
+
+    const unitPrice = Number(product.price);
+    const totalPrice = unitPrice * dto.quantity;
+
+    if (existingItem) {
+      await this.prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: {
+          quantity: dto.quantity,
+          unitPrice: new Decimal(unitPrice),
+          totalPrice: new Decimal(totalPrice),
+          notes: dto.notes ?? null,
+        },
+      });
+    } else {
+      await this.prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          productId: product.id,
+          quantity: dto.quantity,
+          unitPrice: new Decimal(unitPrice),
+          totalPrice: new Decimal(totalPrice),
+          notes: dto.notes ?? null,
+        },
+      });
+    }
+
+    await this.recalculateCart(cart.id);
+
+    const updatedCart = await this.prisma.cart.findFirst({
+      where: { id: cart.id },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                category: { select: { id: true, name: true } },
+                optionalGroups: {
+                  include: {
+                    optionalGroup: {
+                      include: {
+                        items: {
+                          where: { isActive: true },
+                          orderBy: { sortOrder: 'asc' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return this.mapPublicCart(updatedCart);
+  }
+
+  async getPublicCart(slug: string, sessionId: string) {
+    const store = await this.getStoreBySlug(slug);
+
+    const cart = await this.getOrCreateOpenCart(store.tenantId, store.id, sessionId);
+
+    const fullCart = await this.prisma.cart.findFirst({
+      where: { id: cart.id },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                category: { select: { id: true, name: true } },
+                optionalGroups: {
+                  include: {
+                    optionalGroup: {
+                      include: {
+                        items: {
+                          where: { isActive: true },
+                          orderBy: { sortOrder: 'asc' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return this.mapPublicCart(fullCart);
+  }
+
+  async removeCartItem(slug: string, sessionId: string, itemId: string) {
+    const store = await this.getStoreBySlug(slug);
+
+    const cart = await this.prisma.cart.findFirst({
+      where: {
+        tenantId: store.tenantId,
+        establishmentId: store.id,
+        sessionId,
+        status: 'open',
+      },
+      include: {
+        items: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!cart) {
+      throw new NotFoundException('Carrinho não encontrado');
+    }
+
+    const item = cart.items.find((i) => i.id === itemId);
+    if (!item) {
+      throw new NotFoundException('Item não encontrado no carrinho');
+    }
+
+    await this.prisma.cartItem.delete({
+      where: { id: itemId },
+    });
+
+    await this.recalculateCart(cart.id);
+
+    return this.getPublicCart(slug, sessionId);
+  }
+
+  async createPublicOrder(slug: string, dto: CreatePublicOrderDto) {
+    const store = await this.getStoreBySlug(slug);
+
+    const cart = await this.prisma.cart.findFirst({
+      where: {
+        id: dto.cartId,
+        tenantId: store.tenantId,
+        establishmentId: store.id,
+        sessionId: dto.sessionId,
+        status: 'open',
+      },
+    });
+
+    if (!cart) {
+      throw new BadRequestException('Carrinho inválido para esta loja/sessionId');
+    }
+
+    const order = await this.ordersService.create(store.tenantId, {
+      establishmentId: store.id,
+      cartId: dto.cartId,
+      type: dto.type,
+      paymentMethod: dto.paymentMethod,
+      notes: dto.notes,
+      customerName: dto.customerName,
+      customerPhone: dto.customerPhone,
+      deliveryAddress: dto.deliveryAddress,
+      tableId: dto.tableId,
+    });
+
+    const paymentMethodNorm = (dto.paymentMethod ?? '').toLowerCase().replace(/-/g, '').replace(/_/g, '');
+    if (paymentMethodNorm === 'pix') {
+      try {
+        const orderWithAmount = order as unknown as { id: string; totalAmount: unknown };
+        const payment = await this.paymentsService.createPix(
+          store.tenantId,
+          store.id,
+          orderWithAmount.id,
+          Number(orderWithAmount.totalAmount),
+          '',
+        );
+        return { order, payment };
+      } catch (err) {
+        const paymentError = err && typeof (err as Error).message === 'string' ? (err as Error).message : 'Erro ao gerar PIX';
+        return { order, payment: null, paymentError };
+      }
+    }
+
+    return { order, payment: null };
+  }
+
+  async getPublicOrder(slug: string, id: string) {
+    const store = await this.getStoreBySlug(slug);
+
+    const order = await this.ordersService.findOne(store.tenantId, id);
+
+    if ((order as any).establishmentId !== store.id) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+
+    const paymentRow = await this.prisma.payment.findFirst({
+      where: {
+        orderId: id,
+        tenantId: store.tenantId,
+        establishmentId: store.id,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let payment: {
+      id: string;
+      provider: string | null;
+      method: string;
+      status: string;
+      amount: number;
+      paidAt: Date | null;
+      transactionId: string | null;
+      qrCode: string | null;
+      qrCodeBase64: string | null;
+    } | null = null;
+
+    if (paymentRow) {
+      const raw = paymentRow.rawPayload as {
+        point_of_interaction?: { transaction_data?: { qr_code?: string; qr_code_base64?: string } };
+      } | null;
+      const pointOfInteraction = raw?.point_of_interaction?.transaction_data;
+      payment = {
+        id: paymentRow.id,
+        provider: paymentRow.provider,
+        method: paymentRow.method,
+        status: paymentRow.status,
+        amount: Number(paymentRow.amount),
+        paidAt: paymentRow.paidAt,
+        transactionId: paymentRow.transactionId,
+        qrCode: pointOfInteraction?.qr_code ?? null,
+        qrCodeBase64: pointOfInteraction?.qr_code_base64 ?? null,
+      };
+    }
+
+    return { order, payment };
   }
 }

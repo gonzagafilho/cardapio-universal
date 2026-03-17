@@ -1,15 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { ReorderCategoriesDto } from './dto/reorder-categories.dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
+
+  private async invalidateStoreCategoryCache(establishmentId: string): Promise<void> {
+    await Promise.all([
+      this.cache.del(`store:${establishmentId}:categories`),
+      this.cache.del(`store:${establishmentId}:products`),
+    ]);
+  }
 
   async create(tenantId: string, establishmentId: string, dto: CreateCategoryDto) {
-    return this.prisma.category.create({
+    const category = await this.prisma.category.create({
       data: {
         tenantId,
         establishmentId,
@@ -19,6 +30,8 @@ export class CategoriesService {
         isActive: dto.isActive ?? true,
       },
     });
+    await this.invalidateStoreCategoryCache(establishmentId);
+    return category;
   }
 
   async findAll(tenantId: string, establishmentId?: string) {
@@ -39,16 +52,19 @@ export class CategoriesService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateCategoryDto) {
-    await this.findOne(tenantId, id);
-    return this.prisma.category.update({
+    const existing = await this.findOne(tenantId, id);
+    const updated = await this.prisma.category.update({
       where: { id },
       data: dto,
     });
+    await this.invalidateStoreCategoryCache(existing.establishmentId);
+    return updated;
   }
 
   async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+    const existing = await this.findOne(tenantId, id);
     await this.prisma.category.delete({ where: { id } });
+    await this.invalidateStoreCategoryCache(existing.establishmentId);
     return { message: 'Categoria removida' };
   }
 
@@ -61,6 +77,7 @@ export class CategoriesService {
         }),
       ),
     );
+    await this.invalidateStoreCategoryCache(establishmentId);
     return this.findAll(tenantId, establishmentId);
   }
 }

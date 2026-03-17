@@ -27,6 +27,13 @@ import { JwtPayload } from '../../common/decorators/current-user.decorator';
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
+  @Get('pricing')
+  @Public()
+  @ApiOperation({ summary: 'Tabela de precificação por restaurante (público)' })
+  getPricing() {
+    return this.billingService.getPricing();
+  }
+
   @Get('subscription')
   @SkipTrialCheck()
   @ApiOperation({ summary: 'Ver assinatura atual do tenant' })

@@ -45,7 +45,7 @@ async function main() {
   const LOGO_URL = 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&q=80';
   const BANNER_URL = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80';
   const establishment = await prisma.establishment.upsert({
-    where: { tenantId_slug: { tenantId: tenant.id, slug: ESTABLISHMENT_SLUG } },
+    where: { slug: ESTABLISHMENT_SLUG },
     update: {
       name: 'Pizzaria Bella Massa',
       description:

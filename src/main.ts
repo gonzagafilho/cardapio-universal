@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { env } from './config/env/env';
 import { getSwaggerConfig } from './config/swagger/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix(env.apiPrefix);
   if (env.corsOrigins) {
     const origins = env.corsOrigins.split(',').map((o) => o.trim()).filter(Boolean);

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class OnboardingDto {
   @ApiProperty({ description: 'Nome da empresa/tenant' })
@@ -46,4 +46,10 @@ export class OnboardingDto {
   @IsOptional()
   @IsString()
   storeDescription?: string;
+
+  @ApiPropertyOptional({ description: 'Plano escolhido no cadastro (basic, pro, enterprise). Default: basic.' })
+  @IsOptional()
+  @IsString()
+  @IsIn(['basic', 'pro', 'enterprise'], { message: 'Plano deve ser basic, pro ou enterprise' })
+  plan?: string;
 }

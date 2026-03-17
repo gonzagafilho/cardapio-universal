@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService, AuthResponse, TokenPair } from './auth.service';
 import { OnboardingService } from './onboarding.service';
 import { LoginDto, RefreshTokenDto, OnboardingDto } from './dto';
@@ -7,9 +8,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { SkipTrialCheck } from '../../common/decorators/skip-trial-check.decorator';
 
-/** Rotas login e onboarding são candidatas a rate limit (Throttler/Redis) quando houver mitigação de abuso. */
 @ApiTags('auth')
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -19,6 +20,7 @@ export class AuthController {
   @Public()
   @Post('onboarding')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ auth: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Cadastro inicial (tenant + estabelecimento + usuário dono)' })
   async onboarding(@Body() dto: OnboardingDto): Promise<AuthResponse> {
     return this.onboardingService.register(dto);
@@ -27,6 +29,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ auth: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Login' })
   async login(@Body() dto: LoginDto): Promise<AuthResponse> {
     return this.authService.login(dto);
@@ -35,6 +38,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ auth: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Renovar tokens' })
   async refresh(@Body() dto: RefreshTokenDto): Promise<TokenPair> {
     return this.authService.refresh(dto.refreshToken);

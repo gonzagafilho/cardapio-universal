@@ -2,6 +2,10 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionStatus } from '@prisma/client';
+import {
+  getMonthlyAmountForPlan,
+  getPricingPublic,
+} from '../../common/constants/pricing-restaurants';
 /** Resposta da assinatura atual do tenant (para API e admin). */
 export interface SubscriptionView {
   id: string;
@@ -50,6 +54,14 @@ export class BillingService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Retorna a tabela de precificação por quantidade de restaurantes (público).
+   * Usado por frontend (/planos) e admin (billing) para exibição consistente.
+   */
+  getPricing() {
+    return getPricingPublic();
+  }
 
   /**
    * Retorna a assinatura atual do tenant.
@@ -281,8 +293,8 @@ export class BillingService {
     }
 
     const backUrl = this.config.get<string>('mercadopago.backUrl') ?? '';
-    const planAmounts = this.config.get<Record<string, number>>('mercadopago.planAmounts') ?? {};
-    const amount = planAmounts[planKey] ?? 29.9;
+    const planAmounts = this.config.get<Record<string, number>>('mercadopago.planAmounts');
+    const amount = planAmounts?.[planKey] ?? getMonthlyAmountForPlan(planKey);
 
     let sub = await this.prisma.subscription.findUnique({ where: { tenantId } });
     if (!sub) {

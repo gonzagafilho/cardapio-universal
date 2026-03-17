@@ -1,22 +1,22 @@
 /**
  * Limites por plano SaaS (espelho do backend para UI).
- * Usado em platform/tenants e settings para exibir plano e limites.
+ * Alinhado ao modelo por quantidade de restaurantes: 1, 2, 3 (backend: plans.ts + pricing-restaurants).
  */
 export const PLAN_LIMITS = {
   basic: {
     establishments: 1,
     users: 3,
-    label: 'Basic',
+    label: '1 restaurante',
   },
   pro: {
-    establishments: 5,
+    establishments: 2,
     users: 15,
-    label: 'Pro',
+    label: '2 restaurantes',
   },
   enterprise: {
-    establishments: 20,
+    establishments: 3,
     users: 50,
-    label: 'Enterprise',
+    label: '3 restaurantes',
   },
 } as const;
 

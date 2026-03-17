@@ -1,16 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { UpdateStoreSettingsDto } from './dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async getStore(tenantId: string, establishmentId: string) {
     const settings = await this.prisma.storeSettings.findUnique({
       where: { tenantId_establishmentId: { tenantId, establishmentId } },
     });
+
     if (!settings) {
       return this.prisma.storeSettings.create({
         data: {
@@ -19,6 +24,7 @@ export class SettingsService {
         },
       });
     }
+
     return settings;
   }
 
@@ -28,8 +34,19 @@ export class SettingsService {
     dto: UpdateStoreSettingsDto,
   ) {
     const data: Record<string, unknown> = { ...dto };
-    if (dto.minimumOrder != null) data.minimumOrderAmount = new Decimal(dto.minimumOrder);
-    if (dto.minimumOrderDelivery != null) data.minimumOrderAmountDelivery = new Decimal(dto.minimumOrderDelivery);
+
+    if (dto.minimumOrder != null) {
+      data.minimumOrderAmount = new Decimal(dto.minimumOrder);
+    }
+
+    if (dto.minimumOrderDelivery != null) {
+      data.minimumOrderAmountDelivery = new Decimal(dto.minimumOrderDelivery);
+    }
+
+    if (dto.deliveryFee != null) {
+      data.deliveryFee = new Decimal(dto.deliveryFee);
+    }
+
     delete data.minimumOrder;
     delete data.minimumOrderDelivery;
     delete data.primaryColor;
@@ -37,7 +54,12 @@ export class SettingsService {
     delete data.accentColor;
     delete data.pixKey;
     delete data.deliveryEstimate;
-    return this.prisma.storeSettings.upsert({
+    delete data.paymentPix;
+    delete data.paymentCardOnDelivery;
+    delete data.paymentCardOnCounter;
+    delete data.deliveryFee;
+
+    const result = await this.prisma.storeSettings.upsert({
       where: { tenantId_establishmentId: { tenantId, establishmentId } },
       create: {
         tenantId,
@@ -46,6 +68,8 @@ export class SettingsService {
       },
       update: data as never,
     });
+    await this.cache.del(`store:${establishmentId}:settings`);
+    return result;
   }
 
   async updateHours(
@@ -60,7 +84,11 @@ export class SettingsService {
   async updateBranding(
     tenantId: string,
     establishmentId: string,
-    _data: { primaryColor?: string; secondaryColor?: string; accentColor?: string },
+    _data: {
+      primaryColor?: string;
+      secondaryColor?: string;
+      accentColor?: string;
+    },
   ) {
     const settings = await this.getStore(tenantId, establishmentId);
     return settings;
@@ -69,10 +97,37 @@ export class SettingsService {
   async updatePaymentMethods(
     tenantId: string,
     establishmentId: string,
-    _data: { pixKey?: string },
+    data: {
+      paymentPix?: boolean;
+      paymentCardOnDelivery?: boolean;
+      paymentCardOnCounter?: boolean;
+    },
   ) {
-    const settings = await this.getStore(tenantId, establishmentId);
-    return settings;
+    const update: Record<string, unknown> = {};
+
+    if (data.paymentPix != null) {
+      update.paymentPix = data.paymentPix;
+    }
+
+    if (data.paymentCardOnDelivery != null) {
+      update.paymentCardOnDelivery = data.paymentCardOnDelivery;
+    }
+
+    if (data.paymentCardOnCounter != null) {
+      update.paymentCardOnCounter = data.paymentCardOnCounter;
+    }
+
+    const result = await this.prisma.storeSettings.upsert({
+      where: { tenantId_establishmentId: { tenantId, establishmentId } },
+      create: {
+        tenantId,
+        establishmentId,
+        ...update,
+      },
+      update,
+    });
+    await this.cache.del(`store:${establishmentId}:settings`);
+    return result;
   }
 
   async updateDelivery(
@@ -80,23 +135,61 @@ export class SettingsService {
     establishmentId: string,
     data: {
       acceptsDelivery?: boolean;
-      minimumOrder?: number;
-      minimumOrderDelivery?: number;
-      deliveryEstimate?: number;
+      acceptsPickup?: boolean;
+      acceptsDineIn?: boolean;
+      deliveryFee?: number;
+      minimumOrderAmount?: number;
+      minimumOrderAmountDelivery?: number;
+      estimatedDeliveryTimeMin?: number;
+      estimatedDeliveryTimeMax?: number;
     },
   ) {
     const update: Record<string, unknown> = {};
-    if (data.acceptsDelivery != null) update.acceptsDelivery = data.acceptsDelivery;
-    if (data.minimumOrder != null) update.minimumOrderAmount = new Decimal(data.minimumOrder);
-    if (data.minimumOrderDelivery != null) update.minimumOrderAmountDelivery = new Decimal(data.minimumOrderDelivery);
-    if (data.deliveryEstimate != null) {
-      update.estimatedDeliveryTimeMin = data.deliveryEstimate;
-      update.estimatedDeliveryTimeMax = data.deliveryEstimate;
+
+    if (data.acceptsDelivery != null) {
+      update.acceptsDelivery = data.acceptsDelivery;
     }
-    return this.prisma.storeSettings.upsert({
+
+    if (data.acceptsPickup != null) {
+      update.acceptsPickup = data.acceptsPickup;
+    }
+
+    if (data.acceptsDineIn != null) {
+      update.acceptsDineIn = data.acceptsDineIn;
+    }
+
+    if (data.deliveryFee != null) {
+      update.deliveryFee = new Decimal(data.deliveryFee);
+    }
+
+    if (data.minimumOrderAmount != null) {
+      update.minimumOrderAmount = new Decimal(data.minimumOrderAmount);
+    }
+
+    if (data.minimumOrderAmountDelivery != null) {
+      update.minimumOrderAmountDelivery = new Decimal(
+        data.minimumOrderAmountDelivery,
+      );
+    }
+
+    if (data.estimatedDeliveryTimeMin != null) {
+      update.estimatedDeliveryTimeMin = data.estimatedDeliveryTimeMin;
+    }
+
+    if (data.estimatedDeliveryTimeMax != null) {
+      update.estimatedDeliveryTimeMax = data.estimatedDeliveryTimeMax;
+    }
+
+    const result = await this.prisma.storeSettings.upsert({
       where: { tenantId_establishmentId: { tenantId, establishmentId } },
-      create: { tenantId, establishmentId, ...update },
+      create: {
+        tenantId,
+        establishmentId,
+        ...update,
+      },
       update,
     });
+    await this.cache.del(`store:${establishmentId}:settings`);
+    return result;
   }
 }

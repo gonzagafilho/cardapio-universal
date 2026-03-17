@@ -64,25 +64,40 @@ export class SettingsController {
     return this.settingsService.updateBranding(tenantId, establishmentId, data);
   }
 
-  @Patch('payment-methods')
+    @Patch('payment-methods')
   @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.MANAGER)
   @ApiOperation({ summary: 'Atualizar formas de pagamento' })
   updatePaymentMethods(
     @TenantId() tenantId: string,
     @Query('establishmentId') establishmentId: string,
-    @Body() data: { pixKey?: string },
+    @Body()
+    data: {
+      paymentPix?: boolean;
+      paymentCardOnDelivery?: boolean;
+      paymentCardOnCounter?: boolean;
+    },
   ) {
     return this.settingsService.updatePaymentMethods(tenantId, establishmentId, data);
   }
-
-  @Patch('delivery')
-  @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.MANAGER)
-  @ApiOperation({ summary: 'Atualizar configurações de entrega' })
-  updateDelivery(
+    @Patch('delivery')
+    @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.MANAGER)
+    @ApiOperation({ summary: 'Atualizar configurações de entrega' })
+    updateDelivery(
     @TenantId() tenantId: string,
     @Query('establishmentId') establishmentId: string,
-    @Body() data: { acceptsDelivery?: boolean; minimumOrder?: number; minimumOrderDelivery?: number; deliveryEstimate?: number },
+    @Body()
+    data: {
+      acceptsDelivery?: boolean;
+      acceptsPickup?: boolean;
+      acceptsDineIn?: boolean;
+      deliveryFee?: number;
+      minimumOrderAmount?: number;
+      minimumOrderAmountDelivery?: number;
+      estimatedDeliveryTimeMin?: number;
+      estimatedDeliveryTimeMax?: number;
+    },
   ) {
     return this.settingsService.updateDelivery(tenantId, establishmentId, data);
   }
+    
 }

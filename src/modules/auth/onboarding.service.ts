@@ -58,13 +58,24 @@ export class OnboardingService {
     if (existingTenant) {
       throw new ConflictException('Este slug de empresa já está em uso');
     }
+    const existingStoreSlug = await this.prisma.establishment.findUnique({
+      where: { slug: storeSlug },
+    });
+    if (existingStoreSlug) {
+      throw new ConflictException('Este slug de loja já está em uso no sistema. Escolha outro.');
+    }
+
+    const planKey =
+      dto.plan && ['basic', 'pro', 'enterprise'].includes(dto.plan.toLowerCase())
+        ? dto.plan.toLowerCase()
+        : 'basic';
 
     await this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: {
           name: dto.companyName.trim(),
           slug: tenantSlug,
-          plan: 'basic',
+          plan: planKey,
           status: 'active',
           isActive: true,
         },
@@ -111,7 +122,7 @@ export class OnboardingService {
       await tx.subscription.create({
         data: {
           tenantId: tenant.id,
-          plan: tenant.plan,
+          plan: planKey,
           status: SubscriptionStatus.trialing,
           trialStartsAt,
           trialEndsAt,

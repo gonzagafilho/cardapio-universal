@@ -164,13 +164,13 @@ model User {
 
 // =============================================================================
 // ESTABLISHMENT (estabelecimento / loja / restaurante do tenant)
-// Slug: único por tenant (tenantId + slug).
+// Slug: único globalmente para resolução pública (URL /bistro, etc.).
 // =============================================================================
 model Establishment {
   id            String    @id @default(cuid())
   tenantId      String
   name          String
-  slug          String
+  slug          String    @unique // único global: evita colisão entre tenants na API pública
   customDomain  String?   @unique // domínio personalizado (ex.: menu.pizzariadojoao.com.br); premium
   description   String?
   phone         String?
@@ -206,8 +206,8 @@ model Establishment {
   workingHours   EstablishmentWorkingHours[]
   tables         Table[]
 
-  @@unique([tenantId, slug])
   @@index([tenantId])
+  @@index([tenantId, slug])
   @@index([isActive])
   @@index([customDomain])
 }
@@ -377,6 +377,7 @@ model StoreSettings {
   acceptsPickup              Boolean  @default(true)
   acceptsDelivery            Boolean  @default(true)
   acceptsDineIn              Boolean  @default(true)
+
   currency                   String   @default("BRL")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
