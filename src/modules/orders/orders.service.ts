@@ -6,6 +6,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { ORDER_STATUS } from '../../common/constants/order-status';
 import { Decimal } from '@prisma/client/runtime/library';
 import { OrdersGateway, ORDER_EVENTS } from './orders.gateway';
+import { TableSessionService } from '../table-session/table-session.service';
 
 const MAX_ORDER_CREATE_RETRIES = 3;
 
@@ -20,6 +21,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersGateway: OrdersGateway,
+    private readonly tableSessionService: TableSessionService,
   ) {}
 
   private async generateOrderCode(tenantId: string, establishmentId: string, tx?: Prisma.TransactionClient): Promise<string> {
@@ -111,6 +113,17 @@ export class OrdersService {
             throw new BadRequestException('Carrinho inválido ou já convertido');
           }
 
+          let tableSessionId: string | undefined;
+          if (dto.tableId) {
+            const session = await this.tableSessionService.findOpenOrCreate(
+              tenantId,
+              dto.establishmentId,
+              dto.tableId,
+              tx,
+            );
+            tableSessionId = session.id;
+          }
+
           const orderNumber = await this.generateOrderCode(tenantId, dto.establishmentId, tx);
           const created = await tx.order.create({
             data: {
@@ -131,6 +144,7 @@ export class OrdersService {
               customerPhone: dto.customerPhone,
               deliveryAddressSnapshot: dto.deliveryAddress,
               tableId: dto.tableId ?? undefined,
+              tableSessionId,
             },
           });
 

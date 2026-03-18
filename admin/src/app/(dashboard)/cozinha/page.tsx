@@ -58,9 +58,19 @@ function OrderCard({
   const code = order.code ?? order.orderNumber ?? order.id.slice(0, 8);
   const actions = NEXT_ACTIONS[order.status as OrderStatus] ?? [];
   const loading = loadingId === order.id;
+  const tableLabel =
+    order.table?.number != null
+      ? `Mesa ${order.table.number}`
+      : order.table?.name != null
+        ? `Mesa ${order.table.name}`
+        : null;
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+    <article
+      className={`rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md ${
+        tableLabel ? 'border-sky-200 bg-sky-50/30' : 'border-gray-200'
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <span className="font-mono text-lg font-semibold text-gray-900">#{code}</span>
@@ -74,6 +84,11 @@ function OrderCard({
         {order.customerName ?? '—'}
         {order.customerPhone ? ` · ${order.customerPhone}` : ''}
       </p>
+      {tableLabel && (
+        <div className="mt-2 text-sm font-medium text-sky-900">
+          🪑 {tableLabel}
+        </div>
+      )}
       {order.items && order.items.length > 0 && (
         <ul className="mt-3 space-y-1 border-t border-gray-100 pt-3 text-sm text-gray-600">
           {order.items.map((item) => (

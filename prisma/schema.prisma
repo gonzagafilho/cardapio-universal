@@ -69,6 +69,16 @@ enum Weekday {
   SATURDAY
 }
 
+enum TableSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum TableSessionPaymentStatus {
+  PENDING
+  PAID
+}
+
 // Billing SaaS (cobrança recorrente do tenant – separado de Payment que é pedido)
 enum SubscriptionStatus {
   active
@@ -128,6 +138,7 @@ model Tenant {
   subscriptions        Subscription[]
   subscriptionInvoices SubscriptionInvoice[]
   billingEvents        BillingEvent[]
+  tableSessions       TableSession[]
 
   @@index([slug])
   @@index([isActive])
@@ -205,6 +216,7 @@ model Establishment {
   banners        Banner[]
   workingHours   EstablishmentWorkingHours[]
   tables         Table[]
+  tableSessions  TableSession[]
 
   @@index([tenantId])
   @@index([tenantId, slug])
@@ -527,6 +539,7 @@ model Order {
   customerPhone           String?
   deliveryAddressSnapshot String? // endereço no momento do pedido (texto ou JSON)
   tableId                 String? // mesa/comanda (consumo no local)
+  tableSessionId         String? // sessão de mesa (ciclo de consumo)
   placedAt                DateTime       @default(now())
   confirmedAt             DateTime?
   cancelledAt             DateTime?
@@ -538,8 +551,9 @@ model Order {
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  coupon        Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  table         Table?        @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  coupon        Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  table         Table?         @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableSession  TableSession?  @relation(fields: [tableSessionId], references: [id], onDelete: SetNull)
   items         OrderItem[]
   payments      Payment[]
 
@@ -548,6 +562,7 @@ model Order {
   @@index([establishmentId])
   @@index([customerId])
   @@index([tableId])
+  @@index([tableSessionId])
   @@index([status])
   @@index([paymentStatus])
   @@index([placedAt])
@@ -646,14 +661,45 @@ model Table {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment   @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   orders        Order[]
+  tableSessions TableSession[]
 
   @@unique([establishmentId, token])
   @@index([tenantId])
   @@index([establishmentId])
   @@index([isActive])
+}
+
+// =============================================================================
+// TABLE SESSION (ciclo de consumo da mesa – encerramento real futuro)
+// =============================================================================
+model TableSession {
+  id                String                     @id @default(cuid())
+  tenantId          String
+  establishmentId   String
+  tableId           String
+  openedAt          DateTime                   @default(now())
+  closedAt          DateTime?
+  status            TableSessionStatus         @default(OPEN)
+  totalAmount       Decimal?                   @db.Decimal(10, 2) // total consolidado ao fechar (soma dos pedidos da sessão)
+  serviceFeeAmount  Decimal?                   @db.Decimal(10, 2)
+  discountAmount    Decimal?                   @db.Decimal(10, 2)
+  finalAmount       Decimal?                   @db.Decimal(10, 2) // totalAmount + serviceFee - discount (valor final da conta)
+  paymentStatus     TableSessionPaymentStatus @default(PENDING)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  table         Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  orders        Order[]
+
+  @@index([tenantId])
+  @@index([establishmentId])
+  @@index([tableId])
+  @@index([status])
 }
 
 // =============================================================================

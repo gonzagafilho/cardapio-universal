@@ -9,13 +9,19 @@ const BENEFITS = [
     index: '02',
     title: 'Ofereça QR Code automático para o cliente',
     description:
-      'Coloque o acesso ao cardápio nas mesas, no balcão, no delivery e no WhatsApp com um link simples e prático.',
+      'Coloque o acesso ao cardápio nas mesas, no balcão, no delivery e no WhatsApp com um link simples e prático. Pedido por mesa via QR Code, com conta e fechamento por mesa.',
   },
   {
     index: '03',
     title: 'Passe mais profissionalismo e venda melhor',
     description:
       'Apresente seus produtos com um visual moderno, organizado e fácil de navegar em qualquer celular.',
+  },
+  {
+    index: '04',
+    title: 'Operação completa de salão',
+    description:
+      'Painel de salão por mesa, fechamento de conta por mesa, pagamento interno, comprovante da conta, dashboard e relatórios do restaurante para gestão do dia a dia.',
   },
 ];
 

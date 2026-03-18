@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus, TableSessionPaymentStatus, TableSessionStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { randomUUID } from 'crypto';
 import { PAYMENTS_WEBHOOK_QUEUE } from './payment-webhook.processor';
@@ -278,7 +278,7 @@ export class PaymentsService implements OnModuleInit {
       return;
     }
 
-    const orderId = mp.external_reference;
+    const externalReference = mp.external_reference;
     const status = (mp.status ?? '').toLowerCase();
     if (status !== 'approved') {
       this.logger.log(`Webhook MP payment ${paymentId} status=${status}, skipping order update`);
@@ -286,11 +286,31 @@ export class PaymentsService implements OnModuleInit {
     }
 
     const payment = await this.prisma.payment.findFirst({
-      where: { transactionId: String(mp.id), orderId },
+      where: { transactionId: String(mp.id), orderId: externalReference },
       include: { order: true },
     });
     if (!payment) {
-      this.logger.warn(`Webhook MP: Payment not found transactionId=${mp.id} orderId=${orderId}`);
+      // Fallback: pagamento PIX pode estar vinculado a uma TableSession (external_reference = tableSessionId)
+      const session = await this.prisma.tableSession.findFirst({
+        where: { id: externalReference },
+        select: { id: true, status: true, paymentStatus: true },
+      });
+
+      if (
+        session &&
+        session.status === TableSessionStatus.CLOSED &&
+        session.paymentStatus !== TableSessionPaymentStatus.PAID
+      ) {
+        await this.prisma.tableSession.update({
+          where: { id: session.id },
+          data: { paymentStatus: TableSessionPaymentStatus.PAID },
+        });
+        this.logger.log(`Webhook MP: table session ${session.id} marked as PAID`);
+      } else {
+        this.logger.warn(
+          `Webhook MP: Payment not found transactionId=${mp.id} and no matching CLOSED table session for externalReference=${externalReference}`,
+        );
+      }
       return;
     }
 
@@ -307,15 +327,18 @@ export class PaymentsService implements OnModuleInit {
         data: { status: 'approved', paidAt: new Date(), rawPayload: mp as unknown as object },
       }),
       this.prisma.order.update({
-        where: { id: orderId },
+        where: { id: externalReference },
         data: orderUpdateData,
       }),
     ]);
-    this.logger.log(`Webhook MP: order ${orderId} marked as PAID` + (orderUpdateData.status === OrderStatus.CONFIRMED ? ', status CONFIRMED' : ''));
+    this.logger.log(
+      `Webhook MP: order ${externalReference} marked as PAID` +
+        (orderUpdateData.status === OrderStatus.CONFIRMED ? ', status CONFIRMED' : ''),
+    );
     const establishmentId = payment.order.establishmentId;
     if (establishmentId) {
       this.ordersGateway.emitToEstablishment(establishmentId, ORDER_EVENTS.CONFIRMED, {
-        orderId,
+        orderId: externalReference,
         establishmentId,
       });
     }

@@ -28,6 +28,9 @@ export function Hero() {
             Organize seus produtos, atualize preços em segundos e ofereça uma experiência mais
             profissional para o cliente sem depender de cardápio impresso ou aplicativo.
           </p>
+          <p className="mt-3 text-base font-medium text-gray-700">
+            Mais que cardápio digital: operação completa de salão.
+          </p>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <Link

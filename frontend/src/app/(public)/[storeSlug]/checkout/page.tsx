@@ -31,6 +31,10 @@ export default function CheckoutPage({ params }: PageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const tableCtx = getPublicTableContext(storeSlug);
+  const tableLabel =
+    tableCtx?.tableNumber != null
+      ? `Mesa ${tableCtx.tableNumber}`
+      : tableCtx?.tableName ?? null;
 
   const minDelivery =
     settings?.minimumOrderDelivery != null
@@ -116,6 +120,11 @@ export default function CheckoutPage({ params }: PageProps) {
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
         <h1 className="text-2xl font-semibold text-gray-900">Checkout</h1>
         <p className="mt-1 text-sm text-gray-500">Preencha seus dados e confirme o pedido.</p>
+        {tableLabel && (
+          <div className="mt-4 rounded-lg bg-neutral-100 p-3 text-sm text-neutral-900">
+            🪑 Você está fazendo pedido para <strong>{tableLabel}</strong>
+          </div>
+        )}
         <div className="mt-6 grid gap-8 lg:grid-cols-2">
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-card lg:p-6">
             <h2 className="text-lg font-semibold text-gray-900">Seus dados</h2>

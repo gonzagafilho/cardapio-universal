@@ -33,6 +33,7 @@ export default function StorePage({ params }: PageProps) {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [tableLabel, setTableLabel] = useState<string | null>(null);
 
   const { setStore } = useCart();
 
@@ -45,7 +46,10 @@ export default function StorePage({ params }: PageProps) {
   useEffect(() => {
     if (!store) return;
     const token = (searchParams?.get('table') ?? '').trim();
-    if (!token) return;
+    if (!token) {
+      setTableLabel(null);
+      return;
+    }
 
     getPublicTableByToken(storeSlug, token)
       .then((table) => {
@@ -57,8 +61,15 @@ export default function StorePage({ params }: PageProps) {
           tableNumber: table.number ?? null,
           resolvedAt: Date.now(),
         });
+
+        setTableLabel(
+          table.number != null
+            ? `Mesa ${table.number}`
+            : table.name
+        );
       })
       .catch(() => {
+        setTableLabel(null);
         // patch mínimo: não bloqueia fluxo atual se token for inválido
       });
   }, [store, storeSlug, searchParams]);
@@ -109,6 +120,7 @@ export default function StorePage({ params }: PageProps) {
           <Badge variant={openNow ? 'success' : 'warning'}>
             {openNow ? 'Aberto' : 'Fechado'}
           </Badge>
+          {tableLabel && <Badge variant="default">{tableLabel}</Badge>}
           {settings?.deliveryEstimate != null && (
             <span className="text-sm text-gray-600">
               Entrega: {settings.deliveryEstimate} min

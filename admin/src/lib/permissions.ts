@@ -26,6 +26,7 @@ export type AppPermission =
   | 'categories.view'
   | 'products.view'
   | 'orders.view'
+  | 'salon.view'
   | 'tables.view'
   | 'customers.view'
   | 'payments.view'
@@ -62,6 +63,7 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.view',
     'products.view',
     'orders.view',
+    'salon.view',
     'tables.view',
     'customers.view',
     'payments.view',
@@ -82,6 +84,7 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.view',
     'products.view',
     'orders.view',
+    'salon.view',
     'tables.view',
     'customers.view',
     'payments.view',
@@ -100,6 +103,7 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.view',
     'products.view',
     'orders.view',
+    'salon.view',
     'tables.view',
     'customers.view',
     'payments.view',
@@ -117,6 +121,7 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.view',
     'products.view',
     'orders.view',
+    'salon.view',
     'tables.view',
     'customers.view',
     'payments.view',
@@ -132,15 +137,18 @@ const PERMISSIONS_BY_ROLE: Record<Role, AppPermission[]> = {
     'categories.view',
     'products.view',
     'orders.view',
+    'salon.view',
     'tables.view',
   ],
   ATTENDANT: [
     'dashboard.view',
     'orders.view',
+    'salon.view',
     'tables.view',
   ],
   OPERATOR: [
     'orders.view',
+    'salon.view',
     'tables.view',
   ],
 };
@@ -167,6 +175,10 @@ export function canAccessProducts(role: Role): boolean {
 
 export function canAccessOrders(role: Role): boolean {
   return hasPermission(role, 'orders.view');
+}
+
+export function canAccessSalon(role: Role): boolean {
+  return hasPermission(role, 'salon.view');
 }
 
 export function canAccessTables(role: Role): boolean {
@@ -231,6 +243,7 @@ export function canAccessPath(role: Role, path: string): boolean {
   if (path.startsWith('/categories')) return canAccessCategories(role);
   if (path.startsWith('/products')) return canAccessProducts(role);
   if (path.startsWith('/orders')) return canAccessOrders(role);
+  if (path.startsWith('/salon')) return canAccessSalon(role);
   if (path.startsWith('/tables')) return canAccessTables(role);
   if (path === '/cozinha') return canAccessCozinha(role);
   if (path.startsWith('/customers')) return canAccessCustomers(role);
@@ -257,6 +270,7 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   { path: '/categories', label: 'Categorias', orderRestaurant: 4, permission: 'categories.view', check: canAccessCategories },
   { path: '/products', label: 'Produtos', orderRestaurant: 5, permission: 'products.view', check: canAccessProducts },
+  { path: '/salon', label: 'Salão', labelRestaurant: 'Salão', orderRestaurant: 6.2, permission: 'salon.view', check: canAccessSalon },
   { path: '/orders', label: 'Pedidos', orderRestaurant: 6, permission: 'orders.view', check: canAccessOrders },
   { path: '/tables', label: 'Mesas', labelRestaurant: 'Mesas', orderRestaurant: 6.5, permission: 'tables.view', check: canAccessTables },
   { path: '/cozinha', label: 'Cozinha', orderRestaurant: 7, permission: 'orders.view', check: canAccessCozinha },

@@ -14,6 +14,7 @@ const icons: Record<string, string> = {
   categories: '🏷️',
   products: '📦',
   orders: '📋',
+  salon: '🧑‍🍳',
   tables: '🪑',
   cozinha: '🍳',
   customers: '👥',

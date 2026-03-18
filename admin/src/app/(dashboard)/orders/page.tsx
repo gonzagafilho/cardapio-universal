@@ -18,7 +18,28 @@ export default function OrdersPage() {
   if (loading) return <LoadingPage />;
 
   const columns: Column<Order>[] = [
-    { key: 'code', header: 'Código' },
+    {
+      key: 'code',
+      header: 'Código',
+      render: (row: Order) => {
+        const tableLabel =
+          row.table?.number != null
+            ? `Mesa ${row.table.number}`
+            : row.table?.name ?? null;
+        return (
+          <div className="space-y-1">
+            <div className="font-mono font-semibold text-gray-900">
+              {row.code ?? row.orderNumber ?? row.id.slice(0, 8)}
+            </div>
+            {tableLabel && (
+              <div className="text-sm font-medium text-sky-900">
+                🪑 {tableLabel}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
     {
       key: 'total',
       header: 'Total',
