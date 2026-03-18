@@ -584,21 +584,21 @@ export default function SalonPage() {
                 <div>
                   <h3 className="mb-2 text-sm font-semibold text-gray-900">Resumo financeiro</h3>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-3">
                       <div className="text-xs font-medium text-gray-500">Sessões</div>
                       <div className="mt-0.5 text-sm font-semibold text-gray-900">{sessionHistory.length}</div>
                     </div>
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-3">
                       <div className="text-xs font-medium text-gray-500">Faturamento</div>
                       <div className="mt-0.5 text-sm font-semibold text-gray-900">{formatCurrency(totalRevenue)}</div>
                     </div>
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-3">
                       <div className="text-xs font-medium text-gray-500">Último fechamento</div>
                       <div className="mt-0.5 text-sm font-semibold text-gray-900">
                         {lastClosedTotal != null ? formatCurrency(lastClosedTotal) : '—'}
                       </div>
                     </div>
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-4 py-3">
                       <div className="text-xs font-medium text-gray-500">Ticket médio/sessão</div>
                       <div className="mt-0.5 text-sm font-semibold text-gray-900">
                         {averageSession != null ? formatCurrency(averageSession) : '—'}
@@ -620,7 +620,7 @@ export default function SalonPage() {
               return (
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-gray-900">Conta da sessão</h3>
-                  <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-3 space-y-2">
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal</span>
                       <span className="font-medium text-gray-900">{formatCurrency(totalAmount)}</span>
@@ -703,7 +703,9 @@ export default function SalonPage() {
                     </Button>
                     )}
                     {accountUpdateSuccess && (
-                      <span className="text-xs text-emerald-600 font-medium">Conta atualizada</span>
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
+                        Conta atualizada
+                      </span>
                     )}
                     {isClosed && isPending && (
                       <>
@@ -796,13 +798,17 @@ export default function SalonPage() {
                         </div>
 
                         {pixWaiting && !pixSuccess && (
-                          <span className="mt-2 block text-xs text-gray-600 font-medium">
+                          <span className="mt-2 block rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700">
                             Aguardando confirmação do pagamento…
                           </span>
                         )}
-                        {pixError && <span className="mt-2 block text-xs text-red-600 font-medium">{pixError}</span>}
+                        {pixError && (
+                          <span className="mt-2 block rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700">
+                            {pixError}
+                          </span>
+                        )}
                         {pixSuccess && (
-                          <span className="mt-2 block text-xs text-emerald-600 font-medium">
+                          <span className="mt-2 block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
                             PIX confirmado: sessão paga
                           </span>
                         )}
@@ -842,7 +848,9 @@ export default function SalonPage() {
                       </>
                     )}
                     {paySuccess && (
-                      <span className="text-xs text-emerald-600 font-medium">Sessão marcada como paga</span>
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
+                        Sessão marcada como paga
+                      </span>
                     )}
                     <Button
                       size="sm"
@@ -1008,7 +1016,10 @@ export default function SalonPage() {
             title="Comprovante"
             className="max-w-md"
           >
-            <div id="comprovante-print" className="bg-white p-6 text-center space-y-4 print:p-8">
+            <div
+              id="comprovante-print"
+              className="rounded-2xl border border-gray-200 bg-white p-6 text-center space-y-4 print:p-8"
+            >
               <h2 className="text-lg font-bold text-gray-900 tracking-tight">COMPROVANTE DE CONTA</h2>
               <div className="text-sm text-gray-600 space-y-1">
                 <p className="font-medium text-gray-900">{tableLabel(selectedSummary.table)}</p>
@@ -1033,7 +1044,16 @@ export default function SalonPage() {
                 </div>
               </div>
               <p className="text-sm">
-                Status: <span className={paid ? 'text-green-600 font-semibold' : 'text-amber-600 font-semibold'}>{paid ? 'PAGO' : 'PENDENTE'}</span>
+                Status:{' '}
+                <span
+                  className={
+                    paid
+                      ? 'rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800'
+                      : 'rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800'
+                  }
+                >
+                  {paid ? 'PAGO' : 'PENDENTE'}
+                </span>
               </p>
             </div>
             <div className="mt-4 flex justify-end gap-2 print:hidden">

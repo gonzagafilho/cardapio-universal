@@ -18,8 +18,14 @@ export function Loading({ size = 'md', className }: LoadingProps) {
 
 export function LoadingPage() {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loading size="lg" />
+    <div className="flex min-h-[50vh] items-center justify-center p-6">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white px-6 py-10 shadow-sm">
+        <Loading size="lg" />
+        <div className="text-center">
+          <p className="text-sm font-semibold text-gray-900">Carregando…</p>
+          <p className="mt-1 text-xs text-gray-500">Só um instante.</p>
+        </div>
+      </div>
     </div>
   );
 }
