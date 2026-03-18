@@ -641,6 +641,7 @@ model Table {
   establishmentId String
   name            String
   number          String?
+  token           String?
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -649,6 +650,7 @@ model Table {
   establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
   orders        Order[]
 
+  @@unique([establishmentId, token])
   @@index([tenantId])
   @@index([establishmentId])
   @@index([isActive])

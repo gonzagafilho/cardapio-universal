@@ -10,6 +10,7 @@ import {
   syncPublicCart,
   getPublicCart,
   createPublicOrder,
+  getPublicTableContext,
 } from '@/services/store.service';
 import { StoreHeader, CheckoutFormSimple, CartSummary, StoreFooter } from '@/components/store';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export default function CheckoutPage({ params }: PageProps) {
   const { items, subtotal, discount, deliveryFee, total, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const tableCtx = getPublicTableContext(storeSlug);
 
   const minDelivery =
     settings?.minimumOrderDelivery != null
@@ -61,6 +63,7 @@ export default function CheckoutPage({ params }: PageProps) {
         customerPhone: data.customerPhone,
         deliveryAddress: data.orderType === 'delivery' ? data.deliveryAddress : undefined,
         notes: data.notes?.trim() || undefined,
+        tableId: tableCtx?.tableId,
       });
       if (result?.order) {
         const o = result.order as { id: string; code?: string; totalAmount?: number; total?: number };
@@ -117,6 +120,7 @@ export default function CheckoutPage({ params }: PageProps) {
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-card lg:p-6">
             <h2 className="text-lg font-semibold text-gray-900">Seus dados</h2>
             <CheckoutFormSimple
+              defaultData={tableCtx ? { orderType: 'dine_in' } : undefined}
               onSubmit={handleSubmit}
               loading={submitting}
               error={submitError}

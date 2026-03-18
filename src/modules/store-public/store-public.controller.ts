@@ -73,6 +73,20 @@ export class StorePublicController {
       this.storePublicService.getSettings(store.tenantId, store.id),
     );
   }
+
+  @Get(':slug/table')
+  @Public()
+  @Throttle({ publicRead: { limit: 120, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Resolver mesa/comanda por token (?token=)' })
+  getTableByToken(
+    @Param('slug') slug: string,
+    @Query('token') token: string,
+  ) {
+    return this.storePublicService.getStoreBySlug(slug).then((store) =>
+      this.storePublicService.getTableByToken(store.tenantId, store.id, token),
+    );
+  }
+
   @Post(':slug/cart')
   @Public()
   @Throttle({ publicWrite: { limit: 20, ttl: 60_000 } })

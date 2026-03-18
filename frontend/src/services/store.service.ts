@@ -7,6 +7,7 @@ import type { Order } from '@/types/order';
 
 const PUBLIC_PREFIX = '/public/store';
 const SESSION_STORAGE_KEY = 'cardapio-public-session-id';
+const TABLE_CONTEXT_KEY_PREFIX = 'cardapio-public-table-context:';
 
 /** SessionId estável para carrinho/pedido público (sem login). */
 export function getOrCreateSessionId(): string {
@@ -122,5 +123,55 @@ export async function getStoreProduct(
 
 export async function getStoreSettings(slug: string): Promise<StoreSettings> {
   return apiGet<StoreSettings>(`${PUBLIC_PREFIX}/${slug}/settings`);
+}
+
+export interface PublicTable {
+  id: string;
+  name: string;
+  number?: string | null;
+}
+
+export async function getPublicTableByToken(slug: string, token: string): Promise<PublicTable> {
+  return apiGet<PublicTable>(`${PUBLIC_PREFIX}/${slug}/table?token=${encodeURIComponent(token)}`);
+}
+
+export type PublicTableContext = {
+  slug: string;
+  token: string;
+  tableId: string;
+  tableName: string;
+  tableNumber?: string | null;
+  resolvedAt: number;
+};
+
+export function getPublicTableContext(slug: string): PublicTableContext | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`${TABLE_CONTEXT_KEY_PREFIX}${slug}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PublicTableContext;
+    if (!parsed?.tableId || parsed.slug !== slug) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function setPublicTableContext(ctx: PublicTableContext): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`${TABLE_CONTEXT_KEY_PREFIX}${ctx.slug}`, JSON.stringify(ctx));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearPublicTableContext(slug: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(`${TABLE_CONTEXT_KEY_PREFIX}${slug}`);
+  } catch {
+    // ignore
+  }
 }
 

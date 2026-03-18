@@ -11,3 +11,4 @@ export * from './coupon.service';
 export * from './report.service';
 export * from './settings.service';
 export * from './user.service';
+export * from './table.service';

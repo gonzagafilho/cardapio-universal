@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { EstablishmentsService } from './establishments.service';
 import { CreateEstablishmentDto, UpdateEstablishmentDto } from './dto';
+import { CreateEstablishmentTableDto } from './dto/create-establishment-table.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -74,5 +75,40 @@ export class EstablishmentsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.establishmentsService.remove(tenantId, id, user);
+  }
+
+  @Get(':id/tables')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.TENANT_ADMIN, ROLES.MANAGER, ROLES.TENANT_STAFF, ROLES.ATTENDANT, ROLES.OPERATOR)
+  @ApiOperation({ summary: 'Listar mesas/comandas do estabelecimento' })
+  listTables(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.establishmentsService.listTables(tenantId, id, user);
+  }
+
+  @Post(':id/tables')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.TENANT_ADMIN, ROLES.MANAGER)
+  @ApiOperation({ summary: 'Criar mesa/comanda no estabelecimento (gera token)' })
+  createTable(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateEstablishmentTableDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.establishmentsService.createTable(tenantId, id, dto, user);
+  }
+
+  @Post(':id/tables/:tableId/token')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.TENANT_ADMIN, ROLES.MANAGER)
+  @ApiOperation({ summary: 'Regenerar token de mesa/comanda' })
+  regenerateTableToken(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Param('tableId') tableId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.establishmentsService.regenerateTableToken(tenantId, id, tableId, user);
   }
 }

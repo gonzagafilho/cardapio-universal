@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useStoreData } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
+import { getPublicTableByToken, setPublicTableContext } from '@/services/store.service';
 import {
   StoreHeader,
   StoreBanner,
@@ -24,6 +26,7 @@ interface PageProps {
 
 export default function StorePage({ params }: PageProps) {
   const { storeSlug } = params;
+  const searchParams = useSearchParams();
   const { store, settings, categories, products, loading, error } =
     useStoreData(storeSlug);
 
@@ -33,11 +36,32 @@ export default function StorePage({ params }: PageProps) {
 
   const { setStore } = useCart();
 
-    useEffect(() => {
+  useEffect(() => {
     if (store) {
-     setStore(storeSlug, store.id);
+      setStore(storeSlug, store.id);
     }
-    }, [store, storeSlug, setStore]);
+  }, [store, storeSlug, setStore]);
+
+  useEffect(() => {
+    if (!store) return;
+    const token = (searchParams?.get('table') ?? '').trim();
+    if (!token) return;
+
+    getPublicTableByToken(storeSlug, token)
+      .then((table) => {
+        setPublicTableContext({
+          slug: storeSlug,
+          token,
+          tableId: table.id,
+          tableName: table.name,
+          tableNumber: table.number ?? null,
+          resolvedAt: Date.now(),
+        });
+      })
+      .catch(() => {
+        // patch mínimo: não bloqueia fluxo atual se token for inválido
+      });
+  }, [store, storeSlug, searchParams]);
 
   const filteredProducts = useMemo(() => {
     if (!activeCategoryId) return products;

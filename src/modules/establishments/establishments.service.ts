@@ -8,9 +8,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
 import { PlansService } from '../plans/plans.service';
 import { CreateEstablishmentDto } from './dto/create-establishment.dto';
+import { CreateEstablishmentTableDto } from './dto/create-establishment-table.dto';
 import { UpdateEstablishmentDto } from './dto/update-establishment.dto';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { ROLES } from '../../common/constants/roles';
+import { Prisma } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class EstablishmentsService {
@@ -141,5 +144,109 @@ export class EstablishmentsService {
     await this.findOne(tenantId, id, user);
     await this.prisma.establishment.delete({ where: { id } });
     return { message: 'Estabelecimento removido' };
+  }
+
+  async listTables(tenantId: string, establishmentId: string, user: JwtPayload) {
+    await this.findOne(tenantId, establishmentId, user);
+    return this.prisma.table.findMany({
+      where: { tenantId, establishmentId },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        number: true,
+        token: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  private generateTableToken(): string {
+    // 12 bytes => 16 chars base64url (URL-safe), suficiente para token de QR/link
+    return crypto.randomBytes(12).toString('base64url');
+  }
+
+  async createTable(
+    tenantId: string,
+    establishmentId: string,
+    dto: CreateEstablishmentTableDto,
+    user: JwtPayload,
+  ) {
+    await this.findOne(tenantId, establishmentId, user);
+
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const token = this.generateTableToken();
+      try {
+        return await this.prisma.table.create({
+          data: {
+            tenantId,
+            establishmentId,
+            name: dto.name.trim(),
+            number: dto.number?.trim() || null,
+            token,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            number: true,
+            token: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002' && attempt < 5) {
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    throw new ConflictException('Não foi possível gerar token único para a mesa. Tente novamente.');
+  }
+
+  async regenerateTableToken(
+    tenantId: string,
+    establishmentId: string,
+    tableId: string,
+    user: JwtPayload,
+  ) {
+    await this.findOne(tenantId, establishmentId, user);
+
+    const existing = await this.prisma.table.findFirst({
+      where: { id: tableId, tenantId, establishmentId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('Mesa/comanda não encontrada');
+
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const token = this.generateTableToken();
+      try {
+        return await this.prisma.table.update({
+          where: { id: tableId },
+          data: { token },
+          select: {
+            id: true,
+            name: true,
+            number: true,
+            token: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002' && attempt < 5) {
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    throw new ConflictException('Não foi possível gerar token único para a mesa. Tente novamente.');
   }
 }

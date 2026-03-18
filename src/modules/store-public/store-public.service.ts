@@ -302,6 +302,28 @@ export class StorePublicService {
     await this.cache.set(cacheKey, JSON.stringify(result));
     return result;
   }
+
+  async getTableByToken(tenantId: string, establishmentId: string, token: string) {
+    const t = (token ?? '').trim();
+    if (!t) throw new BadRequestException('Token de mesa inválido');
+
+    const table = await this.prisma.table.findFirst({
+      where: {
+        tenantId,
+        establishmentId,
+        token: t,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        number: true,
+      },
+    });
+
+    if (!table) throw new NotFoundException('Mesa/comanda não encontrada');
+    return table;
+  }
     private async getOrCreateOpenCart(tenantId: string, establishmentId: string, sessionId: string) {
     let cart = await this.prisma.cart.findFirst({
       where: {
