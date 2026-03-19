@@ -24,6 +24,7 @@ import { HealthModule } from './modules/health/health.module';
 import { StorePublicModule } from './modules/store-public/store-public.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { CsvImportModule } from './modules/csv-import/csv-import.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { TrialGuard } from './common/guards/trial.guard';
 import { ValidationPipe } from './common/pipes/validation.pipe';
@@ -101,6 +102,7 @@ const useBullQueue = redisUrl.startsWith('redis://');
     StorePublicModule,
     PlansModule,
     BillingModule,
+    CsvImportModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

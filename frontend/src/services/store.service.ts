@@ -74,6 +74,7 @@ export interface CreatePublicOrderDto {
   customerPhone?: string;
   deliveryAddress?: string;
   tableId?: string;
+  tableToken?: string;
 }
 
 export interface CreatePublicOrderResult {

@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DataTable, type Column } from '@/components/tables';
 import { Badge } from '@/components/ui/badge';
-import { getEstablishmentTables, createEstablishmentTable, regenerateEstablishmentTableToken } from '@/services/table.service';
+import {
+  getEstablishmentTables,
+  createEstablishmentTable,
+  regenerateEstablishmentTableToken,
+} from '@/services/table.service';
 import { getEstablishment } from '@/services/establishment.service';
 import { canAccessTables } from '@/lib/permissions';
 import type { Table } from '@/types/table';
@@ -40,22 +44,34 @@ export default function TablesPage() {
       setLoading(false);
       return;
     }
-    Promise.all([refresh(), getEstablishment(establishmentId).then(setEstablishment)])
-      .finally(() => setLoading(false));
+
+    Promise.all([
+      refresh(),
+      getEstablishment(establishmentId).then(setEstablishment),
+    ]).finally(() => setLoading(false));
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, canView, establishmentId]);
 
   if (!user) return null;
   if (loading) return <LoadingPage />;
-  if (!canView) return <AccessDenied description="Seu perfil não pode acessar esta área." />;
+  if (!canView) {
+    return <AccessDenied description="Seu perfil não pode acessar esta área." />;
+  }
 
   const handleCreate = async () => {
     if (!establishmentId) return;
+
     const n = name.trim();
     if (!n) return;
+
     setSaving(true);
     try {
-      await createEstablishmentTable(establishmentId, { name: n, number: number.trim() || undefined });
+      await createEstablishmentTable(establishmentId, {
+        name: n,
+        number: number.trim() || undefined,
+      });
+
       setName('');
       setNumber('');
       await refresh();
@@ -75,21 +91,31 @@ export default function TablesPage() {
   };
 
   const buildPublicUrl = (slug: string, token: string) =>
-    `https://${slug}.menu.cardapio.nexoracloud.com.br/?table=${token}`;
+    `https://app.cardapio.nexoracloud.com.br/${slug}?table=${token}`;
 
   const tableTitle = (t: Table) =>
     t.number != null && String(t.number).trim() !== ''
       ? `Mesa ${t.number}`
       : t.name;
 
-  const openPrintWindow = (payload: {
-    establishmentName: string;
-    establishmentLogoUrl?: string | null;
-    tableTitle: string;
-    qrDataUrl: string;
-    publicUrl: string;
-  }) => {
-    const { establishmentName, establishmentLogoUrl, tableTitle, qrDataUrl, publicUrl } = payload;
+    const openPrintWindow = (
+    w: Window,
+    payload: {
+      establishmentName: string;
+      establishmentLogoUrl?: string | null;
+      tableTitle: string;
+      qrDataUrl: string;
+      publicUrl: string;
+    }
+  ) => {
+    const {
+      establishmentName,
+      establishmentLogoUrl,
+      tableTitle,
+      qrDataUrl,
+      publicUrl,
+    } = payload;
+
     const html = `<!doctype html>
 <html lang="pt-BR">
   <head>
@@ -98,25 +124,87 @@ export default function TablesPage() {
     <title>QR Code - ${tableTitle}</title>
     <style>
       @page { size: A4; margin: 12mm; }
-      html, body { background: #fff; color: #0f172a; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif; }
+      html, body {
+        background: #fff;
+        color: #0f172a;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      }
       * { box-sizing: border-box; }
-      .sheet { width: 100%; display: flex; justify-content: center; padding: 6mm 0; }
+      .sheet {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 6mm 0;
+      }
       .card {
         width: 92mm;
         border: 1px solid #e5e7eb;
         border-radius: 14px;
         padding: 14px 14px 12px;
       }
-      .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-      .logo { width: 44px; height: 44px; border-radius: 10px; object-fit: contain; background: #fff; border: 1px solid #f1f5f9; }
-      .name { font-weight: 800; font-size: 14px; line-height: 1.2; }
-      .subtitle { color: #475569; font-size: 12px; margin-top: 2px; }
-      .tableTitle { margin-top: 10px; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; }
-      .qrWrap { margin-top: 12px; display: flex; justify-content: center; }
-      .qr { width: 72mm; height: 72mm; border-radius: 12px; border: 1px solid #e5e7eb; padding: 10px; }
-      .hint { margin-top: 10px; font-size: 12px; color: #334155; text-align: center; }
-      .url { margin-top: 8px; font-size: 10px; color: #64748b; text-align: center; word-break: break-all; }
-      .footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #334155; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        object-fit: contain;
+        background: #fff;
+        border: 1px solid #f1f5f9;
+      }
+      .name {
+        font-weight: 800;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+      .subtitle {
+        color: #475569;
+        font-size: 12px;
+        margin-top: 2px;
+      }
+      .tableTitle {
+        margin-top: 10px;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+      .qrWrap {
+        margin-top: 12px;
+        display: flex;
+        justify-content: center;
+      }
+      .qr {
+        width: 72mm;
+        height: 72mm;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        padding: 10px;
+      }
+      .hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #334155;
+        text-align: center;
+      }
+      .url {
+        margin-top: 8px;
+        font-size: 10px;
+        color: #64748b;
+        text-align: center;
+        word-break: break-all;
+      }
+      .footer {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e5e7eb;
+        text-align: center;
+        font-size: 11px;
+        color: #334155;
+      }
     </style>
   </head>
   <body>
@@ -140,14 +228,12 @@ export default function TablesPage() {
     </div>
     <script>
       window.addEventListener('load', () => {
-        setTimeout(() => window.print(), 50);
+        setTimeout(() => window.print(), 80);
       });
     </script>
   </body>
 </html>`;
 
-    const w = window.open('', '_blank', 'noopener,noreferrer');
-    if (!w) return;
     w.document.open();
     w.document.write(html);
     w.document.close();
@@ -155,8 +241,10 @@ export default function TablesPage() {
 
   const handleGenerateQR = async (table: Table) => {
     if (!establishment?.slug || !table.token) return;
+
     const url = buildPublicUrl(establishment.slug, table.token);
     setQrLoadingId(table.id);
+
     try {
       const dataUrl = await generateQRCode(url);
       setQrByTableId((cur) => ({ ...cur, [table.id]: dataUrl }));
@@ -165,25 +253,73 @@ export default function TablesPage() {
     }
   };
 
-  const handlePrintPreview = async (table: Table) => {
+   const handlePrintPreview = async (table: Table) => {
     if (!establishment?.slug || !table.token) return;
+
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Gerando impressão...</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              background: #ffffff;
+              color: #0f172a;
+            }
+          </style>
+        </head>
+        <body>
+          Gerando visualização de impressão...
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
     const publicUrl = buildPublicUrl(establishment.slug, table.token);
 
     setQrLoadingId(table.id);
     try {
       const existing = qrByTableId[table.id];
       const qrDataUrl = existing ?? (await generateQRCode(publicUrl));
+
       if (!existing) {
         setQrByTableId((cur) => ({ ...cur, [table.id]: qrDataUrl }));
       }
 
-      openPrintWindow({
+      openPrintWindow(printWindow, {
         establishmentName: establishment.name,
         establishmentLogoUrl: establishment.logoUrl,
         tableTitle: tableTitle(table),
         qrDataUrl,
         publicUrl,
       });
+    } catch (error) {
+      printWindow.document.open();
+      printWindow.document.write(`
+        <!doctype html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="utf-8" />
+            <title>Erro ao gerar impressão</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; padding: 24px;">
+            <h2>Não foi possível gerar a visualização.</h2>
+            <p>Verifique o console do navegador e tente novamente.</p>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      console.error('Erro ao gerar visualização de impressão:', error);
     } finally {
       setQrLoadingId(null);
     }
@@ -212,13 +348,21 @@ export default function TablesPage() {
             </Button>
           );
         }
-        const href = establishment?.slug ? `/${establishment.slug}?table=${row.token}` : `?table=${row.token}`;
+
+        const href = establishment?.slug
+          ? buildPublicUrl(establishment.slug, row.token)
+          : `?table=${row.token}`;
+
         const qr = qrByTableId[row.id];
-        const qrUrl = establishment?.slug ? buildPublicUrl(establishment.slug, row.token) : null;
+        const qrUrl = establishment?.slug
+          ? buildPublicUrl(establishment.slug, row.token)
+          : null;
+
         return (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs text-gray-700">{row.token}</span>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -226,9 +370,11 @@ export default function TablesPage() {
               >
                 Copiar link
               </Button>
+
               <Button variant="ghost" size="sm" onClick={() => handleRegenerate(row.id)}>
                 Regenerar
               </Button>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -238,6 +384,7 @@ export default function TablesPage() {
               >
                 Gerar QR Code
               </Button>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -247,6 +394,7 @@ export default function TablesPage() {
               >
                 Visualizar impressão
               </Button>
+
               {qr && (
                 <a
                   href={qr}
@@ -259,6 +407,7 @@ export default function TablesPage() {
                 </a>
               )}
             </div>
+
             {qr && (
               <div className="rounded-lg border border-gray-200 bg-white p-3">
                 <img
@@ -289,9 +438,22 @@ export default function TablesPage() {
         <>
           <div className="rounded-xl border bg-white p-4">
             <h2 className="mb-3 font-semibold text-gray-900">Criar mesa</h2>
+
             <div className="flex flex-col gap-3 md:flex-row">
-              <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Mesa 01" />
-              <Input label="Número (opcional)" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="01" />
+              <Input
+                label="Nome"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex.: Mesa 01"
+              />
+
+              <Input
+                label="Número (opcional)"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                placeholder="01"
+              />
+
               <div className="flex items-end">
                 <Button onClick={handleCreate} loading={saving} disabled={!name.trim()}>
                   Criar
@@ -311,4 +473,3 @@ export default function TablesPage() {
     </div>
   );
 }
-

@@ -605,6 +605,7 @@ export class StorePublicService {
       customerPhone: dto.customerPhone,
       deliveryAddress: dto.deliveryAddress,
       tableId: dto.tableId,
+      tableToken: dto.tableToken,
     });
 
     const paymentMethodNorm = (dto.paymentMethod ?? '').toLowerCase().replace(/-/g, '').replace(/_/g, '');

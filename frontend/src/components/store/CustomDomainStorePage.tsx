@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useStoreDataByHost } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
+import { getPublicTableByToken, setPublicTableContext } from '@/services/store.service';
 import {
   StoreHeader,
   StoreBanner,
@@ -26,6 +28,8 @@ export function CustomDomainStorePage({ host }: { host: string }) {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [tableLabel, setTableLabel] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   const { setStore } = useCart();
 
@@ -34,6 +38,31 @@ export function CustomDomainStorePage({ host }: { host: string }) {
     setStore(store.slug, store.id);
     }
   }, [store, setStore]);
+
+  useEffect(() => {
+    if (!store) return;
+    const token = (searchParams?.get('table') ?? '').trim();
+    if (!token) {
+      setTableLabel(null);
+      return;
+    }
+
+    getPublicTableByToken(store.slug, token)
+      .then((table) => {
+        setPublicTableContext({
+          slug: store.slug,
+          token,
+          tableId: table.id,
+          tableName: table.name,
+          tableNumber: table.number ?? null,
+          resolvedAt: Date.now(),
+        });
+        setTableLabel(table.number != null ? `Mesa ${table.number}` : table.name);
+      })
+      .catch(() => {
+        setTableLabel(null);
+      });
+  }, [store, searchParams]);
 
   const filteredProducts = useMemo(() => {
     if (!activeCategoryId) return products;
@@ -83,6 +112,7 @@ export function CustomDomainStorePage({ host }: { host: string }) {
           <Badge variant={openNow ? 'success' : 'warning'}>
             {openNow ? 'Aberto' : 'Fechado'}
           </Badge>
+          {tableLabel && <Badge variant="default">{tableLabel}</Badge>}
           {settings?.deliveryEstimate != null && (
             <span className="text-sm text-gray-600">
               Entrega: {settings.deliveryEstimate} min

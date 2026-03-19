@@ -61,6 +61,24 @@ export async function apiPost<T>(path: string, body?: unknown, options?: Request
   return handleResponse<T>(res);
 }
 
+export async function apiPostFormData<T>(
+  path: string,
+  formData: FormData,
+  options?: RequestInit,
+): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    method: 'POST',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(options?.headers ?? {}),
+    },
+    body: formData,
+  });
+  return handleResponse<T>(res);
+}
+
 export async function apiPatch<T>(path: string, body?: unknown, options?: RequestInit): Promise<T> {
   const token = getToken();
   const res = await fetch(`${API_BASE_URL}${path}`, {

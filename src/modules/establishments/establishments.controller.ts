@@ -18,6 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { TenantId } from '../../common/decorators/tenant.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
+import { SkipTrialCheck } from '../../common/decorators/skip-trial-check.decorator';
 import { ROLES } from '../../common/constants/roles';
 
 @ApiTags('establishments')
@@ -38,6 +39,7 @@ export class EstablishmentsController {
   }
 
   @Get()
+  @SkipTrialCheck()
   @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.MANAGER)
   @ApiOperation({ summary: 'Listar estabelecimentos' })
   findAll(@TenantId() tenantId: string, @CurrentUser() user: JwtPayload) {
@@ -45,6 +47,7 @@ export class EstablishmentsController {
   }
 
   @Get(':id')
+  @SkipTrialCheck()
   @ApiOperation({ summary: 'Buscar estabelecimento' })
   findOne(
     @TenantId() tenantId: string,
@@ -78,6 +81,7 @@ export class EstablishmentsController {
   }
 
   @Get(':id/tables')
+  @SkipTrialCheck()
   @Roles(ROLES.SUPER_ADMIN, ROLES.TENANT_OWNER, ROLES.TENANT_ADMIN, ROLES.MANAGER, ROLES.TENANT_STAFF, ROLES.ATTENDANT, ROLES.OPERATOR)
   @ApiOperation({ summary: 'Listar mesas/comandas do estabelecimento' })
   listTables(

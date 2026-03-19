@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useStoreData } from '@/hooks/useStoreData';
 import { useCart } from '@/hooks/useCart';
@@ -10,7 +10,9 @@ import {
   syncPublicCart,
   getPublicCart,
   createPublicOrder,
+  getPublicTableByToken,
   getPublicTableContext,
+  setPublicTableContext,
 } from '@/services/store.service';
 import { StoreHeader, CheckoutFormSimple, CartSummary, StoreFooter } from '@/components/store';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,7 @@ interface PageProps {
 export default function CheckoutPage({ params }: PageProps) {
   const { storeSlug } = params;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { store, settings, loading, error } = useStoreData(storeSlug);
   const { items, subtotal, discount, deliveryFee, total, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +38,26 @@ export default function CheckoutPage({ params }: PageProps) {
     tableCtx?.tableNumber != null
       ? `Mesa ${tableCtx.tableNumber}`
       : tableCtx?.tableName ?? null;
+
+  useEffect(() => {
+    const token = (searchParams?.get('table') ?? '').trim();
+    if (!token) return;
+
+    getPublicTableByToken(storeSlug, token)
+      .then((table) => {
+        setPublicTableContext({
+          slug: storeSlug,
+          token,
+          tableId: table.id,
+          tableName: table.name,
+          tableNumber: table.number ?? null,
+          resolvedAt: Date.now(),
+        });
+      })
+      .catch(() => {
+        // fluxo segue sem contexto de mesa quando token inválido
+      });
+  }, [searchParams, storeSlug]);
 
   const minDelivery =
     settings?.minimumOrderDelivery != null
@@ -67,7 +90,8 @@ export default function CheckoutPage({ params }: PageProps) {
         customerPhone: data.customerPhone,
         deliveryAddress: data.orderType === 'delivery' ? data.deliveryAddress : undefined,
         notes: data.notes?.trim() || undefined,
-        tableId: tableCtx?.tableId,
+        tableId: data.orderType === 'dine_in' ? tableCtx?.tableId : undefined,
+        tableToken: data.orderType === 'dine_in' ? tableCtx?.token : undefined,
       });
       if (result?.order) {
         const o = result.order as { id: string; code?: string; totalAmount?: number; total?: number };

@@ -76,10 +76,27 @@ export class OrdersService {
       }
     }
 
-    if (dto.tableId) {
+    let resolvedTableId = dto.tableId;
+    if (!resolvedTableId && dto.tableToken) {
+      const tableByToken = await this.prisma.table.findFirst({
+        where: {
+          token: dto.tableToken.trim(),
+          tenantId,
+          establishmentId: dto.establishmentId,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      if (!tableByToken) {
+        throw new BadRequestException('Token de mesa/comanda inválido ou inativo');
+      }
+      resolvedTableId = tableByToken.id;
+    }
+
+    if (resolvedTableId) {
       const table = await this.prisma.table.findFirst({
         where: {
-          id: dto.tableId,
+          id: resolvedTableId,
           tenantId,
           establishmentId: dto.establishmentId,
           isActive: true,
@@ -114,11 +131,11 @@ export class OrdersService {
           }
 
           let tableSessionId: string | undefined;
-          if (dto.tableId) {
+          if (resolvedTableId) {
             const session = await this.tableSessionService.findOpenOrCreate(
               tenantId,
               dto.establishmentId,
-              dto.tableId,
+              resolvedTableId,
               tx,
             );
             tableSessionId = session.id;
@@ -143,7 +160,7 @@ export class OrdersService {
               customerName: dto.customerName,
               customerPhone: dto.customerPhone,
               deliveryAddressSnapshot: dto.deliveryAddress,
-              tableId: dto.tableId ?? undefined,
+              tableId: resolvedTableId ?? undefined,
               tableSessionId,
             },
           });

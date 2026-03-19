@@ -25,28 +25,56 @@ export class TableSessionService {
     tableId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<{ id: string }> {
-    const client = (tx ?? this.prisma) as Prisma.TransactionClient;
-    let session = await client.tableSession.findFirst({
-      where: {
-        tenantId,
-        establishmentId,
-        tableId,
-        status: TableSessionStatus.OPEN,
-      },
-      select: { id: true },
-    });
-    if (!session) {
-      session = await client.tableSession.create({
-        data: {
+    const run = async (client: Prisma.TransactionClient): Promise<{ id: string }> => {
+      const existing = await client.tableSession.findFirst({
+        where: {
           tenantId,
           establishmentId,
           tableId,
           status: TableSessionStatus.OPEN,
         },
+        orderBy: [{ openedAt: 'desc' }, { createdAt: 'desc' }],
         select: { id: true },
       });
+      if (existing) return { id: existing.id };
+
+      try {
+        const created = await client.tableSession.create({
+          data: {
+            tenantId,
+            establishmentId,
+            tableId,
+            status: TableSessionStatus.OPEN,
+          },
+          select: { id: true },
+        });
+        return { id: created.id };
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          const concurrent = await client.tableSession.findFirst({
+            where: {
+              tenantId,
+              establishmentId,
+              tableId,
+              status: TableSessionStatus.OPEN,
+            },
+            orderBy: [{ openedAt: 'desc' }, { createdAt: 'desc' }],
+            select: { id: true },
+          });
+          if (concurrent) return { id: concurrent.id };
+        }
+        throw err;
+      }
+    };
+
+    if (tx) {
+      return run(tx);
     }
-    return { id: session.id };
+
+    return this.prisma.$transaction(
+      (trx) => run(trx),
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   /** Abre uma nova sessão para a mesa (uso explícito pelo admin no futuro). */
@@ -58,13 +86,9 @@ export class TableSessionService {
     await this.prisma.table.findFirstOrThrow({
       where: { id: tableId, tenantId, establishmentId, isActive: true },
     });
-    return this.prisma.tableSession.create({
-      data: {
-        tenantId,
-        establishmentId,
-        tableId,
-        status: TableSessionStatus.OPEN,
-      },
+    const session = await this.findOpenOrCreate(tenantId, establishmentId, tableId);
+    return this.prisma.tableSession.findFirstOrThrow({
+      where: { id: session.id, tenantId, establishmentId, tableId },
     });
   }
 

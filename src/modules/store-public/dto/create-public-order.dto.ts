@@ -43,4 +43,9 @@ export class CreatePublicOrderDto {
   @IsOptional()
   @IsString()
   tableId?: string;
+
+  @ApiPropertyOptional({ description: 'Token da mesa/comanda (fallback para consumo no local)' })
+  @IsOptional()
+  @IsString()
+  tableToken?: string;
 }
