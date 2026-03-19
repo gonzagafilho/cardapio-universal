@@ -139,6 +139,7 @@ model Tenant {
   subscriptionInvoices SubscriptionInvoice[]
   billingEvents        BillingEvent[]
   tableSessions       TableSession[]
+  serviceBindings     TenantServiceBinding[]
 
   @@index([slug])
   @@index([isActive])
@@ -859,4 +860,43 @@ model BillingEvent {
   @@index([tenantId])
   @@index([eventType])
   @@index([createdAt])
+}
+
+// =============================================================================
+// MASTER SERVICES BASE (painel mestre multi-serviço - fase mínima)
+// =============================================================================
+
+model ServiceCatalog {
+  id          String   @id @default(cuid())
+  key         String   @unique // identificador estável (ex.: cardapio, chatbot, crm)
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenantBindings TenantServiceBinding[]
+
+  @@index([isActive])
+}
+
+model TenantServiceBinding {
+  id               String   @id @default(cuid())
+  tenantId         String
+  serviceCatalogId String
+  status           String   @default("active") // active, suspended, cancelled, pending
+  plan             String? // plano/sku interno do serviço neste tenant
+  notes            String?
+  activatedAt      DateTime?
+  suspendedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service ServiceCatalog @relation(fields: [serviceCatalogId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, serviceCatalogId])
+  @@index([tenantId])
+  @@index([serviceCatalogId])
+  @@index([status])
 }
