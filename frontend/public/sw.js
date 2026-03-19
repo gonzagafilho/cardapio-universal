@@ -1,5 +1,5 @@
 /* PWA Service Worker - cache versionado, offline, sem cache de rotas sensíveis */
-var CACHE_VERSION = 'v1';
+var CACHE_VERSION = 'v2';
 var CACHE_NAME = 'cardapio-pwa-' + CACHE_VERSION;
 
 var PRECACHE_URLS = [
