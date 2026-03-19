@@ -21,15 +21,17 @@ nginx-cardapio-nexora.conf
 frontend/scripts/
 .env.bak
 .env.bak-*
+# Certificados/chaves locais
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 # Backups (do not commit)
 backups/
 # Backups genéricos (ex.: *.bak-YYYY-MM-DD-...)
 *.bak-*
 
-# CSV import WIP (evita commit acidental nesta fase)
-admin/src/app/(dashboard)/csv-import/
-admin/src/services/csv-import.service.ts
-src/modules/csv-import/
 # Logs and temp
 *.log
 npm-debug.log*
