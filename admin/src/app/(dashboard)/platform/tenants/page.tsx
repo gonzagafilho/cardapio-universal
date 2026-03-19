@@ -92,7 +92,7 @@ export default function PlatformTenantsPage() {
       render: (row: Tenant) => (
         <Link href={`/platform/tenants/${row.id}`}>
           <Button variant="ghost" size="sm">
-            Ver
+            Ver serviços
           </Button>
         </Link>
       ),
@@ -105,7 +105,7 @@ export default function PlatformTenantsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Plataforma — Tenants</h1>
       </div>
       <p className="text-sm text-gray-600">
-        Visão global dos tenants cadastrados. Apenas Super Admin.
+        Lista global de tenants para consulta de vínculos de serviços.
       </p>
       <DataTable<Tenant>
         columns={columns}

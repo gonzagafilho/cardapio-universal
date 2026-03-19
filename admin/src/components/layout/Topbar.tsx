@@ -70,6 +70,11 @@ const PAGE_META: Record<string, { eyebrow: string; title: string; description: s
     title: 'Billing',
     description: 'Acompanhe plano, cobrança e status da assinatura do SaaS.',
   },
+  '/platform': {
+    eyebrow: 'Plataforma',
+    title: 'Painel mestre',
+    description: 'Visualize serviços, tenants e vínculos globais da plataforma.',
+  },
 };
 
 const ANNOUNCEMENTS = [

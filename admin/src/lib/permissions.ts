@@ -259,7 +259,7 @@ export function canAccessPath(role: Role, path: string): boolean {
 
 export const MENU_ITEMS: MenuItem[] = [
   { path: '/dashboard', label: 'Dashboard', labelRestaurant: 'Início', orderRestaurant: 1, permission: 'dashboard.view', check: canAccessDashboard },
-  { path: '/platform/tenants', label: 'Plataforma', orderRestaurant: 100, permission: 'platform.view', check: canAccessPlatform },
+  { path: '/platform', label: 'Plataforma', orderRestaurant: 100, permission: 'platform.view', check: canAccessPlatform },
   {
     path: '/establishments',
     label: 'Estabelecimentos',
