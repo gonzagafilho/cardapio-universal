@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -9,6 +10,7 @@ import { Role, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService, AuthResponse } from './auth.service';
 import { OnboardingDto } from './dto/onboarding.dto';
+import { env } from '../../config/env/env';
 
 /** Duração do trial para novos tenants (dias). */
 const DEFAULT_TRIAL_DAYS = 7;
@@ -38,6 +40,12 @@ export class OnboardingService {
   ) {}
 
   async register(dto: OnboardingDto): Promise<AuthResponse> {
+    if (env.isOnPrem && !env.onPremAllowPublicOnboarding) {
+      throw new ForbiddenException(
+        'Onboarding público desabilitado neste ambiente on-prem',
+      );
+    }
+
     const tenantSlug = normalizeSlug(dto.companySlug);
     const storeSlug = normalizeSlug(dto.storeSlug ?? dto.storeName);
 

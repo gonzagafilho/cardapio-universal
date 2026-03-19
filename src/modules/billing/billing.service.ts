@@ -6,6 +6,7 @@ import {
   getMonthlyAmountForPlan,
   getPricingPublic,
 } from '../../common/constants/pricing-restaurants';
+import { env } from '../../config/env/env';
 /** Resposta da assinatura atual do tenant (para API e admin). */
 export interface SubscriptionView {
   id: string;
@@ -275,6 +276,11 @@ export class BillingService {
     plan: string,
     payerEmail: string,
   ): Promise<{ checkoutUrl: string } | null> {
+    if (env.isOnPrem) {
+      this.logger.log(`OnPrem mode: skipping external checkout tenantId=${tenantId} plan=${plan}`);
+      return null;
+    }
+
     const accessToken = this.config.get<string>('mercadopago.accessToken');
     if (!accessToken?.trim()) {
       this.logger.debug('Mercado Pago não configurado (accessToken vazio)');
@@ -390,6 +396,11 @@ export class BillingService {
     payload: { type?: string; data?: { id?: string }; id?: string; notification_id?: string },
     xSignature?: string,
   ): Promise<void> {
+    if (env.isOnPrem) {
+      this.logger.debug('OnPrem mode: Mercado Pago webhook ignored');
+      return;
+    }
+
     const type = payload.type;
     const preapprovalId = payload.data?.id;
     const provider = 'mercadopago';

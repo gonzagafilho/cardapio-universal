@@ -147,3 +147,12 @@ Onde olhar logs:
 - Este documento descreve o procedimento operacional compatível com o ambiente atual: Nginx roteando app/admin/api para `3021/3022/3023`, e SW com política anti-mismatch.
 - Próxima mudança segura: sempre repita “Build limpo (com rm -rf .next) → Restart PM2 --update-env → Checklist pós-deploy”.
 
+## 9. Nota curta: modo híbrido (SaaS / OnPrem)
+
+- Variável de backend: `DEPLOYMENT_MODE=saas|onprem` (arquivo `.env` da API).
+- `saas` (padrão): comportamento atual de trial/billing com checkout externo quando configurado.
+- `onprem`:
+  - checkout externo de assinatura não é obrigatório (endpoint retorna `checkoutUrl: null`);
+  - `TrialGuard` passa a respeitar licença local (`ONPREM_LICENSE_VALID=true|false`);
+  - onboarding público pode ser bloqueado por segurança (`ONPREM_ALLOW_PUBLIC_ONBOARDING=false` por padrão em onprem).
+

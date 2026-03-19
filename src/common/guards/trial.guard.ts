@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ROLES } from '../constants/roles';
 import { JwtPayload } from '../decorators/current-user.decorator';
 import { SKIP_TRIAL_CHECK_KEY } from '../decorators/skip-trial-check.decorator';
+import { env } from '../../config/env/env';
 
 /**
  * Guard que bloqueia acesso quando o tenant está em trial e trialEndsAt já passou.
@@ -30,6 +31,14 @@ export class TrialGuard implements CanActivate {
     if (!user) return true;
     if (user.role === ROLES.SUPER_ADMIN) return true;
     if (!user.tenantId) return true;
+
+    if (env.isOnPrem) {
+      if (env.onPremLicenseValid) return true;
+      throw new ForbiddenException({
+        message: 'Licença local inválida ou expirada',
+        code: 'ONPREM_LICENSE_INVALID',
+      });
+    }
 
     const skipTrialCheck = this.reflector.getAllAndOverride<boolean>(
       SKIP_TRIAL_CHECK_KEY,
