@@ -4,6 +4,11 @@ Este procedimento é para deploy/restart do Cardápio Nexora (frontend + admin +
 - evitar mismatch de `Server Actions` após deploy
 - manter o cache do PWA em um modo menos frágil
 
+## 0. Nota PWA (cache hardened)
+- O `frontend/public/sw.js` foi endurecido para NÃO cachear `/_next/static/`.
+- O SW só cacheia `offline.html`, `manifest.json`, `icon-192.png` e `icon-512.png`.
+- Portanto, não é necessário bump manual de cache para evitar mismatch de `Server Actions` após deploy.
+
 ## 1. Preparação
 No diretório do projeto:
 `cd /home/servidor-dcnet/cardapio-universal`
