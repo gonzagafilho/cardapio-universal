@@ -21,6 +21,7 @@ function isSensitivePath(url) {
 function shouldNotCache(url) {
   var u = new URL(url);
   if (u.pathname.indexOf('/api') !== -1) return true;
+  if (u.pathname.indexOf('/_next/static/') !== -1) return true;
   if (u.origin !== self.location.origin) return true;
   return isSensitivePath(url);
 }
@@ -68,8 +69,13 @@ self.addEventListener('fetch', function (event) {
   }
 
   var path = new URL(url).pathname;
-  var isStatic = path.indexOf('/_next/static/') === 0 ||
-    path === '/manifest.json' || path === '/icon-192.png' || path === '/icon-512.png' || path === '/offline.html';
+  // Só cacheamos assets realmente seguros para offline (manifest/icons/offline.html).
+  // Não cacheamos `/_next/static/` para evitar mismatch de bundles em deploys futuros.
+  var isStatic =
+    path === '/manifest.json' ||
+    path === '/icon-192.png' ||
+    path === '/icon-512.png' ||
+    path === '/offline.html';
 
   if (isStatic) {
     event.respondWith(
