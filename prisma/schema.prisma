@@ -95,6 +95,18 @@ enum InvoiceStatus {
   uncollectible
 }
 
+enum BillingType {
+  PIX_AUTOMATIC
+}
+
+enum BillingInvoiceStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+  FAILED
+}
+
 // =============================================================================
 // TENANT (empresa dona do sistema / multi-tenant)
 // =============================================================================
@@ -138,6 +150,7 @@ model Tenant {
   subscriptions        Subscription[]
   subscriptionInvoices SubscriptionInvoice[]
   billingEvents        BillingEvent[]
+  billingInvoices      BillingInvoice[]
   tableSessions       TableSession[]
   serviceBindings     TenantServiceBinding[]
 
@@ -847,6 +860,7 @@ model SubscriptionInvoice {
 model BillingEvent {
   id              String    @id @default(cuid())
   tenantId        String
+  invoiceId       String?
   eventType       String // subscription.created, invoice.paid, webhook.received, etc.
   payload         Json?
   provider        String? // mercadopago, stripe, etc. (evento externo)
@@ -854,10 +868,12 @@ model BillingEvent {
   processedAt     DateTime? // preenchido quando o processamento do evento termina
   createdAt       DateTime  @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice BillingInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
   @@unique([provider, externalEventId])
   @@index([tenantId])
+  @@index([invoiceId])
   @@index([eventType])
   @@index([createdAt])
 }
@@ -894,9 +910,36 @@ model TenantServiceBinding {
 
   tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   service ServiceCatalog @relation(fields: [serviceCatalogId], references: [id], onDelete: Cascade)
+  billingInvoices BillingInvoice[]
 
   @@unique([tenantId, serviceCatalogId])
   @@index([tenantId])
   @@index([serviceCatalogId])
   @@index([status])
+}
+
+model BillingInvoice {
+  id               String               @id @default(cuid())
+  tenantId         String
+  serviceBindingId String
+  amountCents      Int
+  billingType      BillingType          @default(PIX_AUTOMATIC)
+  status           BillingInvoiceStatus @default(PENDING)
+  externalChargeId String?              @unique
+  pixCode          String?
+  pixQrCodeUrl     String?
+  expiresAt        DateTime?
+  paidAt           DateTime?
+  metadata         Json?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  serviceBinding TenantServiceBinding @relation(fields: [serviceBindingId], references: [id], onDelete: Cascade)
+  events         BillingEvent[]
+
+  @@index([tenantId])
+  @@index([serviceBindingId])
+  @@index([status])
+  @@index([createdAt])
 }

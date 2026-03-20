@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SubscriptionStatus } from '@prisma/client';
+import { BillingInvoiceStatus, BillingType, Prisma, SubscriptionStatus } from '@prisma/client';
 import {
   getMonthlyAmountForPlan,
   getPricingPublic,
 } from '../../common/constants/pricing-restaurants';
 import { env } from '../../config/env/env';
+import { CreatePixInvoiceDto } from './dto/create-pix-invoice.dto';
+import { PixProviderAdapter } from './providers/pix.provider';
 /** Resposta da assinatura atual do tenant (para API e admin). */
 export interface SubscriptionView {
   id: string;
@@ -55,6 +57,229 @@ export class BillingService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {}
+
+  async createPixInvoice(dto: CreatePixInvoiceDto) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: dto.tenantId },
+      select: { id: true },
+    });
+    if (!tenant) throw new NotFoundException('Tenant não encontrado');
+
+    const binding = await this.prisma.tenantServiceBinding.findFirst({
+      where: { id: dto.serviceBindingId, tenantId: dto.tenantId },
+      select: { id: true, status: true },
+    });
+    if (!binding) throw new NotFoundException('Vínculo de serviço não encontrado para o tenant');
+
+    const tenantInfo = await this.prisma.tenant.findUnique({
+      where: { id: dto.tenantId },
+      select: { email: true, name: true },
+    });
+    const payerEmail = tenantInfo?.email?.trim() || 'billing@nexoracloud.com.br';
+
+    const charge = await this.getPixProvider().createPixCharge({
+      tenantId: dto.tenantId,
+      serviceBindingId: dto.serviceBindingId,
+      amountCents: dto.amountCents,
+      payerEmail,
+      description: `Nexora - Serviço por binding ${dto.serviceBindingId}`,
+      metadata: dto.metadata,
+    });
+
+    const invoice = await this.prisma.billingInvoice.create({
+      data: {
+        tenantId: dto.tenantId,
+        serviceBindingId: dto.serviceBindingId,
+        amountCents: dto.amountCents,
+        billingType: BillingType.PIX_AUTOMATIC,
+        status: BillingInvoiceStatus.PENDING,
+        externalChargeId: charge.externalChargeId,
+        pixCode: charge.pixCode,
+        pixQrCodeUrl: charge.pixQrCodeUrl,
+        expiresAt: charge.expiresAt,
+        metadata: (dto.metadata ?? {}) as Prisma.InputJsonValue,
+      },
+      include: {
+        serviceBinding: {
+          select: { id: true, status: true, serviceCatalogId: true },
+        },
+      },
+    });
+
+    await this.prisma.billingEvent.create({
+      data: {
+        tenantId: dto.tenantId,
+        invoiceId: invoice.id,
+        provider: 'mercadopago',
+        eventType: 'invoice.pix.created',
+        payload: {
+          externalChargeId: invoice.externalChargeId,
+          amountCents: dto.amountCents,
+          serviceBindingId: dto.serviceBindingId,
+        },
+        processedAt: new Date(),
+      },
+    });
+
+    return invoice;
+  }
+
+  async getBillingInvoiceById(id: string) {
+    const invoice = await this.prisma.billingInvoice.findUnique({
+      where: { id },
+      include: {
+        serviceBinding: {
+          include: {
+            service: { select: { id: true, key: true, name: true, isActive: true } },
+          },
+        },
+        events: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+      },
+    });
+    if (!invoice) throw new NotFoundException('Cobrança não encontrada');
+    return invoice;
+  }
+
+  async processPixWebhook(
+    provider: string,
+    payload: unknown,
+    headers?: Record<string, string | string[] | undefined>,
+  ) {
+    const normalizedProvider = provider.trim().toLowerCase();
+    const pixProvider = this.getPixProvider();
+    if (normalizedProvider === 'mercadopago' && !pixProvider.validateWebhook(payload, headers)) {
+      throw new BadRequestException('Assinatura de webhook PIX inválida');
+    }
+
+    const parsed = pixProvider.parseWebhook(payload);
+    const statusLookup = parsed.externalChargeId
+      ? await pixProvider.getChargeStatus(parsed.externalChargeId)
+      : { status: undefined };
+    const normalizedStatus = (statusLookup.status ?? parsed.status ?? '').trim().toLowerCase();
+    const externalEventId = parsed.externalEventId;
+
+    const p = payload as { invoiceId?: string };
+    if (!p?.invoiceId && !parsed.externalChargeId) {
+      throw new BadRequestException('Webhook sem invoiceId/externalChargeId');
+    }
+
+    const invoice = p?.invoiceId
+      ? await this.prisma.billingInvoice.findUnique({
+          where: { id: p.invoiceId },
+        })
+      : await this.prisma.billingInvoice.findUnique({
+          where: { externalChargeId: parsed.externalChargeId },
+        });
+
+    if (!invoice) throw new NotFoundException('Cobrança não encontrada');
+
+    if (externalEventId) {
+      const existingEvent = await this.prisma.billingEvent.findFirst({
+        where: { provider: normalizedProvider, externalEventId },
+      });
+      if (existingEvent) {
+        return {
+          ok: true,
+          idempotent: true,
+          invoiceId: invoice.id,
+          status: invoice.status,
+        };
+      }
+    }
+
+    const shouldMarkPaid = normalizedStatus === 'paid' || normalizedStatus === 'approved';
+
+    if (invoice.status === BillingInvoiceStatus.PAID) {
+      await this.prisma.billingEvent.create({
+        data: {
+          tenantId: invoice.tenantId,
+          invoiceId: invoice.id,
+          provider: normalizedProvider,
+          externalEventId,
+          eventType: 'invoice.pix.webhook.duplicate_paid',
+          payload: parsed.raw as Prisma.InputJsonValue,
+          processedAt: new Date(),
+        },
+      });
+      return { ok: true, alreadyPaid: true, invoiceId: invoice.id, status: invoice.status };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const event = await tx.billingEvent.create({
+        data: {
+          tenantId: invoice.tenantId,
+          invoiceId: invoice.id,
+          provider: normalizedProvider,
+          externalEventId,
+          eventType: `invoice.pix.webhook.${normalizedStatus || 'unknown'}`,
+          payload: parsed.raw as Prisma.InputJsonValue,
+          processedAt: null,
+        },
+      });
+
+      let finalStatus = invoice.status;
+
+      if (shouldMarkPaid) {
+        const now = new Date();
+        await tx.billingInvoice.update({
+          where: { id: invoice.id },
+          data: {
+            status: BillingInvoiceStatus.PAID,
+            paidAt: now,
+          },
+        });
+        await tx.tenantServiceBinding.update({
+          where: { id: invoice.serviceBindingId },
+          data: {
+            status: 'active',
+            activatedAt: now,
+            suspendedAt: null,
+          },
+        });
+        finalStatus = BillingInvoiceStatus.PAID;
+      } else if (normalizedStatus === 'expired') {
+        await tx.billingInvoice.update({
+          where: { id: invoice.id },
+          data: { status: BillingInvoiceStatus.EXPIRED },
+        });
+        finalStatus = BillingInvoiceStatus.EXPIRED;
+      } else if (normalizedStatus === 'cancelled' || normalizedStatus === 'canceled') {
+        await tx.billingInvoice.update({
+          where: { id: invoice.id },
+          data: { status: BillingInvoiceStatus.CANCELLED },
+        });
+        finalStatus = BillingInvoiceStatus.CANCELLED;
+      } else if (normalizedStatus === 'failed') {
+        await tx.billingInvoice.update({
+          where: { id: invoice.id },
+          data: { status: BillingInvoiceStatus.FAILED },
+        });
+        finalStatus = BillingInvoiceStatus.FAILED;
+      }
+
+      await tx.billingEvent.update({
+        where: { id: event.id },
+        data: { processedAt: new Date() },
+      });
+
+      return {
+        ok: true,
+        idempotent: false,
+        invoiceId: invoice.id,
+        status: finalStatus,
+      };
+    });
+  }
+
+  private getPixProvider(): PixProviderAdapter {
+    const accessToken = this.config.get<string>('mercadopago.accessToken') ?? '';
+    const webhookSecret = this.config.get<string>('mercadopago.webhookSecret') ?? '';
+    const notificationUrl = this.config.get<string>('mercadopago.paymentNotificationUrl') ?? '';
+    return new PixProviderAdapter(accessToken, webhookSecret, notificationUrl);
+  }
 
   /**
    * Retorna a tabela de precificação por quantidade de restaurantes (público).

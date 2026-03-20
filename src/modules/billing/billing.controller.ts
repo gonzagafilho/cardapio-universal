@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   Req,
+  Param,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -19,6 +20,11 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipTrialCheck } from '../../common/decorators/skip-trial-check.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
+import { CreatePixInvoiceDto } from './dto/create-pix-invoice.dto';
+import { PixWebhookDto } from './dto/pix-webhook.dto';
 
 @ApiTags('billing')
 @Controller('billing')
@@ -101,5 +107,36 @@ export class BillingController {
   ) {
     const limitNum = limit ? Math.min(Number(limit), 100) : 50;
     return this.billingService.getInvoices(tenantId, limitNum);
+  }
+
+  @Post('invoices/pix')
+  @UseGuards(RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Criar cobrança PIX por tenant e vínculo de serviço (SUPER_ADMIN)' })
+  createPixInvoice(@Body() dto: CreatePixInvoiceDto) {
+    return this.billingService.createPixInvoice(dto);
+  }
+
+  @Post('webhooks/pix/:provider')
+  @Public()
+  @ApiOperation({ summary: 'Webhook PIX por provedor com idempotência' })
+  processPixWebhook(
+    @Param('provider') provider: string,
+    @Body() payload: PixWebhookDto,
+    @Req() req: Request,
+  ) {
+    return this.billingService.processPixWebhook(
+      provider,
+      payload,
+      req.headers as Record<string, string | string[] | undefined>,
+    );
+  }
+
+  @Get('invoices/:id')
+  @UseGuards(RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Consultar cobrança PIX por id (SUPER_ADMIN)' })
+  getInvoiceById(@Param('id') id: string) {
+    return this.billingService.getBillingInvoiceById(id);
   }
 }
